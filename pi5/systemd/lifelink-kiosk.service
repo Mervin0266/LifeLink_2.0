@@ -1,0 +1,18 @@
+[Unit]
+Description=LifeLink 2.0 Touchscreen Kiosk Graphical Interface
+After=lifelink-backend.service graphical.target
+Wants=lifelink-backend.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+WorkingDirectory=/opt/lifelink
+ExecStart=/bin/bash /opt/lifelink/kiosk/kiosk.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target

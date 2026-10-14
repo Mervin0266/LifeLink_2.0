@@ -1,0 +1,4 @@
+# LifeLink 2.0 - Host Tools Python Dependencies for ESP32 Deployment
+esptool>=4.5.1
+mpremote>=1.20.0
+pyserial>=3.5

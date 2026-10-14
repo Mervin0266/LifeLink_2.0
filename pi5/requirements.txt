@@ -1,0 +1,22 @@
+# LifeLink 2.0 - Raspberry Pi 5 Central Terminal Dependencies
+# Core Backend & Framework
+Flask>=2.3.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# Biometric Cryptography (AES-256-GCM)
+cryptography>=41.0.0
+
+# Hardware Serial Communication (ESP32 USB host link)
+pyserial>=3.5
+
+# Database Drivers
+psycopg2-binary>=2.9.6
+
+# Computer Vision & Iris Normalization
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+
+# Deep Learning Inference (CPU/ARM64 PyTorch for Pi 5)
+torch>=2.0.0
+torchvision>=0.15.0

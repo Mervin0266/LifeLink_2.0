@@ -1,0 +1,8 @@
+# LifeLink 2.0 - Raspberry Pi Zero W Camera Service Dependencies
+# Target Architecture: ARMv6 / ARMv7 / ARM64 (Debian Bookworm)
+
+Flask>=2.2.0,<3.1.0
+opencv-python-headless>=4.5.0
+numpy>=1.21.0
+gpiozero>=1.6.2
+rpi-lgpio>=0.5; sys_platform == 'linux'

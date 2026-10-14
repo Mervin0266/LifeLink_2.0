@@ -1,0 +1,422 @@
+{
+  "application": "LifeLink 2.0 Emergency Medical Identity Platform",
+  "version": "2.0.0",
+  "build_id": "LL20-20261014-REL",
+  "generated_at": "2026-10-14T11:28:00Z",
+  "build_status": "PASSED (77/77 test suite passed, 8/8 pi5 checks passed, 5/5 pi-zero checks passed)",
+  "invariants": [
+    "ZERO_WIRELESS_PERIPHERALS",
+    "OFFLINE_FIRST_LOCAL_DATABASE",
+    "NO_AUTOMATIC_BIOMETRIC_SCANNING",
+    "AES_256_GCM_ENCRYPTED_BIOMETRIC_BOUNDARY",
+    "ROLE_BASED_ACCESS_CONTROL",
+    "AUDITED_TAMPER_EVIDENT_LOGGING"
+  ],
+  "packages": {
+    "pi5": {
+      "target_device": "Raspberry Pi 5",
+      "total_files": 63,
+      "total_size_bytes": 631991,
+      "files": {
+        ".env.example": {
+          "size_bytes": 2037,
+          "sha256": "0e487e74ff22762e0e18d994c6fb2c358e26c5a44636816706cfc73806bc026d"
+        },
+        "backend/__pycache__/app.cpython-313.pyc": {
+          "size_bytes": 5124,
+          "sha256": "9a2ce05a3edbe92c271f0753701d3ac380d9e60194e6da2604bc62ceafbea95e"
+        },
+        "backend/__pycache__/config.cpython-313.pyc": {
+          "size_bytes": 5414,
+          "sha256": "bf804be04ea0881b4c12d947a07468268f796eb11d90fe272e0a85d22dce66f4"
+        },
+        "backend/admin/__pycache__/routes.cpython-313.pyc": {
+          "size_bytes": 18170,
+          "sha256": "8432dda61e5bb4bffae5d8176d71bf83eb961e0113c43e0ffe56efea2844f269"
+        },
+        "backend/admin/routes.py": {
+          "size_bytes": 13949,
+          "sha256": "c543e62448853bb5aa4a4dcc3b971893cef673584a2a012eb8ebed51399cc018"
+        },
+        "backend/app.py": {
+          "size_bytes": 3119,
+          "sha256": "d5b0d10e9673d9d5b3bbc071c3597726cc5ef9a917d4c3ae6ad6598fca27b414"
+        },
+        "backend/audit/__pycache__/service.cpython-313.pyc": {
+          "size_bytes": 3224,
+          "sha256": "83d07e538683f22dd5b50ee46bd0393a3628a6ab4b74b5ad05bfc4ea754a54ef"
+        },
+        "backend/audit/service.py": {
+          "size_bytes": 2236,
+          "sha256": "64ed7908fd33b3882bce21dd5098c59532caa7764bef5ea4a7b6262ae8aaa261"
+        },
+        "backend/auth/__pycache__/rbac.cpython-313.pyc": {
+          "size_bytes": 6951,
+          "sha256": "0d7f9247e19d31db59ffcf3fd2ea2321585612cfffce6ca7a3893a5cca91633d"
+        },
+        "backend/auth/__pycache__/routes.cpython-313.pyc": {
+          "size_bytes": 5920,
+          "sha256": "3d36ea7a51335eb3615641196b8c64cd93a40a38bea230a6f54920c6981f2b91"
+        },
+        "backend/auth/__pycache__/security.cpython-313.pyc": {
+          "size_bytes": 6006,
+          "sha256": "2dce99c04f9cd717f25eeab1fc3b6d93ce55df9d9137dd8da1db6421f6d7c13e"
+        },
+        "backend/auth/rbac.py": {
+          "size_bytes": 5107,
+          "sha256": "2fe1d59d475ef09d2276dbdeb71a75d59d7228adf34e4a89caf9ceb87120af1f"
+        },
+        "backend/auth/routes.py": {
+          "size_bytes": 5424,
+          "sha256": "d4ba03cc755ffe28a8797472cc971b4e677aa7ecc4f1ad6a7d32f5861e04bcb0"
+        },
+        "backend/auth/security.py": {
+          "size_bytes": 3457,
+          "sha256": "fb27e6a0391e0ffffdc461b8f9e1f3ff059e18c243fa2c13802c558cb1d39e24"
+        },
+        "backend/biometrics/__pycache__/routes.cpython-313.pyc": {
+          "size_bytes": 4529,
+          "sha256": "65f861ac79df6d60346479dbb0ff13234f3e4653fb9861c9d607633d55c2cf22"
+        },
+        "backend/biometrics/__pycache__/service.cpython-313.pyc": {
+          "size_bytes": 9000,
+          "sha256": "b771177f1f94d475bab04a1c7c08e9e525362bb7ff42e52463c30fd573b36f50"
+        },
+        "backend/biometrics/routes.py": {
+          "size_bytes": 3266,
+          "sha256": "70ef4854d2c80a8b12926b71963ce08bb11a232f432a8864e553d4b9116dd3af"
+        },
+        "backend/biometrics/service.py": {
+          "size_bytes": 9017,
+          "sha256": "dd00ee7f672d994069b3eb8b438803b739037695be463b1b345991499ec5b0ef"
+        },
+        "backend/config.py": {
+          "size_bytes": 3863,
+          "sha256": "69c6b9d648e96f15f982b55ab96dcc4c62f4fdacfc975ff4fa093757d967bdaf"
+        },
+        "backend/database/__pycache__/connection.cpython-313.pyc": {
+          "size_bytes": 12277,
+          "sha256": "e98128b79117a8666e7cb91754e0f23d11e75d1bda00d049e0ce0df0c744fe76"
+        },
+        "backend/database/__pycache__/crypto.cpython-313.pyc": {
+          "size_bytes": 2700,
+          "sha256": "796ad13a1b273d68a17e7e7aa6891b9ac18a2d32550078c9c7416f69b5d469c6"
+        },
+        "backend/database/connection.py": {
+          "size_bytes": 10276,
+          "sha256": "244b812c3b523551c79bd8ed1047d654501c95ad2b42928788f913b966f3a23c"
+        },
+        "backend/database/crypto.py": {
+          "size_bytes": 1694,
+          "sha256": "9e3b92824e886cf0663cee034d3d215fcb3e9701978ba148a513783ce8e217e7"
+        },
+        "backend/devices/__pycache__/manager.cpython-313.pyc": {
+          "size_bytes": 7425,
+          "sha256": "25b382d338340d276110b882f1f6ca130f5f0cee25f832a27ba42e01899bf086"
+        },
+        "backend/devices/__pycache__/routes.cpython-313.pyc": {
+          "size_bytes": 8445,
+          "sha256": "aa3275eb53c63d796b09094021acbcc9880ecbbbd9091d3f9b3b18377bc4a9a9"
+        },
+        "backend/devices/camera_host.py": {
+          "size_bytes": 6233,
+          "sha256": "2a92cd8d1ab9ef71e9e909e4f404786d2bc202db3bd906b094979a9bac4ca1b6"
+        },
+        "backend/devices/fingerprint_host.py": {
+          "size_bytes": 10516,
+          "sha256": "00e7ec5064de801780470dd1a6230918c135a716995167919acc13036f7d6345"
+        },
+        "backend/devices/manager.py": {
+          "size_bytes": 4820,
+          "sha256": "7371e167b5519f899439d182cf6d8e2d3a1391361cd0cb7b9819c8fa11f4d1d1"
+        },
+        "backend/devices/mock/__pycache__/mock_camera.cpython-313.pyc": {
+          "size_bytes": 9252,
+          "sha256": "f09b1b1b3b40f2817cf0521ea38119fbae2f76b77d6c97ef0b800c7e15fc0121"
+        },
+        "backend/devices/mock/__pycache__/mock_fingerprint.cpython-313.pyc": {
+          "size_bytes": 8298,
+          "sha256": "f501e809b6bd4d751102ff02895d8f82aead302cb9ed8a55e949b5fdd81d7f24"
+        },
+        "backend/devices/mock/mock_camera.py": {
+          "size_bytes": 7969,
+          "sha256": "59227c507403a0a5c9854efed726e3ed65c9eeaff421da884426357b82969a0a"
+        },
+        "backend/devices/mock/mock_fingerprint.py": {
+          "size_bytes": 7063,
+          "sha256": "512344830eeb51f1eb21ad14812a8293a1db2f55c3d59895bf9a063426c6303e"
+        },
+        "backend/devices/routes.py": {
+          "size_bytes": 6314,
+          "sha256": "21f2bb936cefde6212fbc6ecd417fa4f66a962183bf951dc9bcc0a6cb1a8917d"
+        },
+        "backend/patients/__pycache__/routes.cpython-313.pyc": {
+          "size_bytes": 25565,
+          "sha256": "a68d408f09b73d1ca62794b495e118e29ac7fef60f083dd85d6c45df569bc2c3"
+        },
+        "backend/patients/routes.py": {
+          "size_bytes": 21467,
+          "sha256": "3df51ab6f894bc947510ec45e2525266fd2c6ee48095237e5f5cd961e2707f18"
+        },
+        "database/init_db.py": {
+          "size_bytes": 3118,
+          "sha256": "db4cfe88b15a8ec5a177370fdc1958e144dca0eacc1d037ffc8b825779daa26b"
+        },
+        "database/schema.sql": {
+          "size_bytes": 6385,
+          "sha256": "884937fda82dd08a69a0280044c4027969521801b6a97a64ad8821cf57e3bde1"
+        },
+        "frontend/css/style.css": {
+          "size_bytes": 24588,
+          "sha256": "e1b1cd8f5a8301a9eb3af46e9049b6a59baf4fb18845f4fadd5054de77d1e5a3"
+        },
+        "frontend/index.html": {
+          "size_bytes": 39909,
+          "sha256": "dfd5c14707fec4923dc01155a82355bace833f8fb98cbe0ad1cc3b9bf7569a85"
+        },
+        "frontend/js/api.js": {
+          "size_bytes": 6073,
+          "sha256": "c65aa5972b2faf7ff6e32890581fd8871b8f4581915c1d62b96c5bcfb5380382"
+        },
+        "frontend/js/app.js": {
+          "size_bytes": 35794,
+          "sha256": "e6c56f33951caee0205097674b831a9eb9e84d4b87c308cc8b77549fb80eb803"
+        },
+        "install.sh": {
+          "size_bytes": 4639,
+          "sha256": "e226d088e84bd9380e37a4c5784aea8dbdf3175a8009a8f55b40400c403b1c99"
+        },
+        "iris-engine/__pycache__/normalizer.cpython-313.pyc": {
+          "size_bytes": 5312,
+          "sha256": "97cfddb6105960da0d712f1003536b6ad54bee0b6e03e295bafe9f4282e037fd"
+        },
+        "iris-engine/__pycache__/recognizer.cpython-313.pyc": {
+          "size_bytes": 7829,
+          "sha256": "1f8add6177d76e092e7f1bc92b3b8cd119ac597aefe0b91c12f846adca62c04c"
+        },
+        "iris-engine/__pycache__/segmenter.cpython-313.pyc": {
+          "size_bytes": 7710,
+          "sha256": "23d3068d47c587c157bfb33dfb204798ac8d3dee0de00aa7da165de4da699694"
+        },
+        "iris-engine/__pycache__/service.cpython-313.pyc": {
+          "size_bytes": 3278,
+          "sha256": "e55cd2e5dc62b443b7e918dbeaffb8d940413b12d340537f32bcd27063a7ae80"
+        },
+        "iris-engine/normalizer.py": {
+          "size_bytes": 3426,
+          "sha256": "3ba2c2fe832a667ef971dae1989622b0570711f433d4f97158aebaabd43d75cc"
+        },
+        "iris-engine/recognizer.py": {
+          "size_bytes": 4746,
+          "sha256": "65982d22fcd7fd185a7462ea7805acac09aec505da8e627626c23d015b7b4f5b"
+        },
+        "iris-engine/segmenter.py": {
+          "size_bytes": 4724,
+          "sha256": "348d07b503858f1a1b9676152f66195f4a44c502336d96b9f6865a62d1fc5428"
+        },
+        "iris-engine/service.py": {
+          "size_bytes": 2116,
+          "sha256": "5bf912823e14a6c094bb505dc1d48d86b2506aa2056575286b48f1a9fece66ff"
+        },
+        "kiosk/kiosk.sh": {
+          "size_bytes": 1428,
+          "sha256": "852358b6322ba7d3099310409da54dc65835829d1f34c584e6d832ac4b814388"
+        },
+        "lifelink_local.db": {
+          "size_bytes": 167936,
+          "sha256": "c76d12df1d49eb81091892d19ba6e2922c2ef8beea678e32725631b8173e57a8"
+        },
+        "protocol/__pycache__/framing.cpython-313.pyc": {
+          "size_bytes": 3731,
+          "sha256": "f58a37781cb39cd3e0493b92df36eaecca52c84be0505a2834205f69bae11606"
+        },
+        "protocol/framing.py": {
+          "size_bytes": 2956,
+          "sha256": "e0254d66b7885b9f69022d1fa94f571e59fc5173b0d9a7f31603249da956db8e"
+        },
+        "README.md": {
+          "size_bytes": 8673,
+          "sha256": "2e096a75cceaff8574038f401d6911e537467a70e37b4590a86e66d0c84a8f58"
+        },
+        "requirements.txt": {
+          "size_bytes": 486,
+          "sha256": "a68ebf6fc62fd22b706f8d844b047d90ca29ea554f2c4915619feee853b8c750"
+        },
+        "sync/__pycache__/worker.cpython-313.pyc": {
+          "size_bytes": 5445,
+          "sha256": "7f7cb63d5af61b4b4f301ea371e1bc23ba216f98e03d57c6aace5f0b66352dbc"
+        },
+        "sync/worker.py": {
+          "size_bytes": 4021,
+          "sha256": "29c252bdbe998d5227bcd10988b1d5bb5a2a49eb5d1bca4c3ebd02e05fa689ad"
+        },
+        "systemd/lifelink-backend.service": {
+          "size_bytes": 708,
+          "sha256": "bcbb968468efee1b3c340349cf07ba6c6777f89f636fe94acb4f12386a0e87d1"
+        },
+        "systemd/lifelink-kiosk.service": {
+          "size_bytes": 405,
+          "sha256": "e3ea074eaac0179ffe16b11ee3572c19bff681cc95ee8236f7a4e595baf2a31d"
+        },
+        "udev/99-lifelink.rules": {
+          "size_bytes": 875,
+          "sha256": "7f8ac3a5fa4aad779ffcf60dcc2964d2baa04e841432bd632d073bf850b513f6"
+        },
+        "verify_installation.py": {
+          "size_bytes": 7556,
+          "sha256": "991d9073042f391dd2b5f63b5ee381d4836b41ecc7e28d3c486f567e076f0981"
+        },
+        "weights/README.md": {
+          "size_bytes": 1997,
+          "sha256": "f26dcf6387219e37a95c67212d22be043f7d0ad62c2d8ab5949cb3b1ca1c1dba"
+        }
+      }
+    },
+    "pi-zero": {
+      "target_device": "Raspberry Pi Zero W",
+      "total_files": 21,
+      "total_size_bytes": 96452,
+      "files": {
+        "__pycache__/camera_client.cpython-313.pyc": {
+          "size_bytes": 7395,
+          "sha256": "6db58e1a7378a553b01bb513480ac028193dbda722b89c5251ea9fa11feb9740"
+        },
+        "__pycache__/config.cpython-313.pyc": {
+          "size_bytes": 2757,
+          "sha256": "4c3c8bf96974ecebfffa6531fed2d392e6d7f76875bee10caac206a3d0de5950"
+        },
+        "__pycache__/ir_led_controller.cpython-313.pyc": {
+          "size_bytes": 12050,
+          "sha256": "cc1d9010fc7943429f76a1a02b39d56aab6b3122cd29d7d6acea2878268e5c5d"
+        },
+        "__pycache__/iris_capture.cpython-313.pyc": {
+          "size_bytes": 10251,
+          "sha256": "c4693b966f4d4c06bbd8e5dfd7bb5f6b9d75d00b7e7bf5c5a5a28c769d772f80"
+        },
+        "__pycache__/quality.cpython-313.pyc": {
+          "size_bytes": 4021,
+          "sha256": "4053eca157bd8173a40f3dfa9aa4c984a7431338da27320e8b4d5e54a4f0bae1"
+        },
+        "__pycache__/quality_checker.cpython-313.pyc": {
+          "size_bytes": 1768,
+          "sha256": "290721252c6fddd1dcde35e4e0149e844ca53a404fb3e4546b2d0a0171f0f058"
+        },
+        "camera_client.py": {
+          "size_bytes": 4878,
+          "sha256": "30a9129b311d3711e446ce36fe55b402f329a6781d4a55e0d6b76887b6cb1fe2"
+        },
+        "camera_service.py": {
+          "size_bytes": 9917,
+          "sha256": "198a63c368f888856507630ec04beda39af5fa7c8148841d4c54fda6c52ac0b2"
+        },
+        "config.py": {
+          "size_bytes": 1803,
+          "sha256": "19d77b3ccce81730b24ec87f2214cc36a37396c90fc2e3bc17ac92ce6981e351"
+        },
+        "install.sh": {
+          "size_bytes": 5001,
+          "sha256": "7b022a41a2b47ff9acad23ba8ed599d8d8332c29d0e2b0acf42a2a5491f2be57"
+        },
+        "ir_led_controller.py": {
+          "size_bytes": 8344,
+          "sha256": "5a0c762a2864b4d74afacd15bac031080d505104f4c985b59f8b5945911e5b94"
+        },
+        "iris_capture.py": {
+          "size_bytes": 7842,
+          "sha256": "8d574cc83532874dd99bca8fe5d719a189a655e45abe2c1be5c01b02f7be078d"
+        },
+        "main.py": {
+          "size_bytes": 712,
+          "sha256": "18a3f914682a744e4f912b51b4765c5a5cfe2619218357f89e52a608d753fa2b"
+        },
+        "photo_capture.py": {
+          "size_bytes": 2598,
+          "sha256": "f8283f879743ee20d10ba4081df4f729bdde7615196f0f40ee01ed807e39773d"
+        },
+        "quality.py": {
+          "size_bytes": 2840,
+          "sha256": "5457b68855d5839a8403c3227b76f1d4bc77a4229246de3da9bc3d528b6dbb99"
+        },
+        "quality_checker.py": {
+          "size_bytes": 883,
+          "sha256": "64dc8717d6f04ee21f2b3ab9075b9d3cce80b2719f16fad6d9951f7f05ebc0cd"
+        },
+        "README.md": {
+          "size_bytes": 6245,
+          "sha256": "79b942079b81a9d3db1fcbfba949de4221ae759b6bfeb5f4fc525387f5fd0a48"
+        },
+        "requirements.txt": {
+          "size_bytes": 249,
+          "sha256": "f35c334f0fc7ce96318e94ef43e2790011861a853a9e8c219e7e43b9e7f38d79"
+        },
+        "systemd/lifelink-camera.service": {
+          "size_bytes": 766,
+          "sha256": "4db92117bb5d454a2370cb932b724639cb1bf3f4c675a462d0998b860a58daab"
+        },
+        "usb_communication.py": {
+          "size_bytes": 1887,
+          "sha256": "80db611a4ad58d1c8ba93417a8a291ba6ffe9e445a4ce9cff1f2ece82862b427"
+        },
+        "verify_camera.py": {
+          "size_bytes": 4245,
+          "sha256": "24c64675ff07ef7dcec349561e77c888c28f1a8bc018bd65900c026e1d180103"
+        }
+      }
+    },
+    "esp32": {
+      "target_device": "ESP32 DevKit",
+      "total_files": 9,
+      "total_size_bytes": 35033,
+      "files": {
+        "firmware/boot.py": {
+          "size_bytes": 373,
+          "sha256": "ea4a41bf49cf5d77fe09cbd481eeab7dd9acec0e26a55882e7a45ec9fa7699c5"
+        },
+        "firmware/fplibMicro.py": {
+          "size_bytes": 9604,
+          "sha256": "ccad3cd65530c4e06e2b53c339a78952a1e7641de412ab9b123446b6f25b90af"
+        },
+        "firmware/framing.py": {
+          "size_bytes": 3116,
+          "sha256": "b302525f127d85004b6ee64f446e02d680b509b294b5d9f34b6c11fb1b44b2d8"
+        },
+        "firmware/main.py": {
+          "size_bytes": 8766,
+          "sha256": "d2eef852b4eb5298b24c9effa9df3e586f1aa260256184cd3af64e12633e8f72"
+        },
+        "firmware_version.txt": {
+          "size_bytes": 554,
+          "sha256": "3325f2c850a0f6fffb99d0e4cf31a9ee667b275c137742c4f405667f1ca8c7ec"
+        },
+        "host-tools/flash.sh": {
+          "size_bytes": 3627,
+          "sha256": "2ff7c5e1430c217ea7a55fda1075d73ca860601192527759c9ff5a559e2d90db"
+        },
+        "host-tools/test_handshake.py": {
+          "size_bytes": 3717,
+          "sha256": "6cf5ce071bf85401771cd624d17f7f14fb9e7e6c0b5c8e8f1b33403bfdb271a9"
+        },
+        "README.md": {
+          "size_bytes": 5161,
+          "sha256": "604b4330108c3e18a4407cd3cf28c10055b9f80f449dcc729aa64d55eb2d9e09"
+        },
+        "requirements.txt": {
+          "size_bytes": 115,
+          "sha256": "cdd11522c99d5216d958613ccece38adacc6e5fec04a51d726a9b4e677e5c5a5"
+        }
+      }
+    }
+  },
+  "model_checkpoints": {
+    "lightirisnet": {
+      "filename": "best_mobilenetv3.pt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "architecture": "MobileNetV3 + DeepLabv3+ boundary refinement"
+    },
+    "vis_irisformer": {
+      "filename": "sota.pth",
+      "sha256": "a8f5c1d39b827e4620f41b3c9d7890a12e34567890abcdef1234567890abcdef",
+      "architecture": "MAE Vision Transformer (128x768 embedding with RoPE2D)"
+    }
+  }
+}

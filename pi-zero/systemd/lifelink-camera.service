@@ -1,0 +1,33 @@
+[Unit]
+Description=LifeLink 2.0 Wired Iris Camera & 850nm IR LED Daemon (Pi Zero W)
+After=network.target local-fs.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=video
+WorkingDirectory=/opt/lifelink-camera
+Environment=PYTHONUNBUFFERED=1
+Environment=PORT=5001
+Environment=HOST=192.168.55.2
+Environment=IR_LED_GPIO_PIN=18
+Environment=IR_LED_ACTIVE_HIGH=true
+Environment=IR_LED_ENABLED=true
+Environment=MAX_SCAN_TIMEOUT_SECONDS=15.0
+Environment=MOCK_MODE=false
+ExecStart=/usr/bin/python3 -m camera_service
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lifelink-camera
+
+# Security & Isolation
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LifeLink 2.0 — Emergency Medical Identity System</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div id="app-root">
+    <!-- Top Hospital Header -->
+    <header class="kiosk-header">
+      <div class="kiosk-brand">
+        <span class="brand-mark">LL</span>
+        <span class="brand-title">LifeLink 2.0</span>
+        <span class="brand-subtitle">Emergency Medical Identity System</span>
+      </div>
+
+      <!-- Live Peripheral Health & Offline/Wired Status Strip -->
+      <div class="header-status-strip">
+        <div class="status-pill" title="GT-521F32 Fingerprint Sensor over USB Serial">
+          <span class="status-dot mock" id="status-fp"></span>
+          <span>Fingerprint (USB)</span>
+        </div>
+        <div class="status-pill" title="Pi Zero W Camera over USB Gadget Ethernet">
+          <span class="status-dot mock" id="status-cam"></span>
+          <span>Iris Camera (Wired)</span>
+        </div>
+        <div class="status-pill" title="Local Operational Database">
+          <span class="status-dot active" id="status-db"></span>
+          <span>Local DB (Offline-Ready)</span>
+        </div>
+
+        <!-- Staff Profile Indicator -->
+        <div class="header-user-badge" id="header-user-badge" style="display:none;">
+          <div style="text-align:left;">
+            <div id="header-user-name" class="user-name">User</div>
+            <div id="header-user-role" class="user-role">ROLE</div>
+          </div>
+        </div>
+
+        <button id="btn-logout" class="btn btn-secondary btn-sm" style="display:none;">
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- App Body: Sidebar + Main Workspace -->
+    <div class="app-body">
+      <!-- Left Navigation Sidebar (Visible when logged in) -->
+      <aside class="kiosk-sidebar hidden" id="kiosk-sidebar">
+        <button class="nav-item active" id="nav-item-dashboard" onclick="app.showScreen('screen-dashboard')">
+          <span class="nav-item-icon">⊞</span>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" id="nav-item-register" onclick="app.startRegistration()">
+          <span class="nav-item-icon">👤</span>
+          <span>Register Patient</span>
+        </button>
+        <button class="nav-item" id="nav-item-retrieve" onclick="app.startRetrieval()">
+          <span class="nav-item-icon">🔍</span>
+          <span>Retrieve Patient</span>
+        </button>
+        <button class="nav-item" id="nav-item-update" onclick="app.startUpdate()">
+          <span class="nav-item-icon">✎</span>
+          <span>Update Patient</span>
+        </button>
+        <button class="nav-item" id="nav-item-admin" style="display:none;" onclick="app.startAdmin()">
+          <span class="nav-item-icon">⚙</span>
+          <span>Admin Console</span>
+        </button>
+        
+        <div class="sidebar-spacer"></div>
+
+        <div style="padding:12px; font-size:11px; color:var(--text-muted); border-top:1px solid var(--border);">
+          Terminal Kiosk v2.0<br>
+          <span style="font-weight:600;">Wired Peripheral Bus</span>
+        </div>
+      </aside>
+
+      <!-- Main Kiosk Workspace -->
+      <main class="kiosk-main">
+
+        <!-- ====================================================================
+             SCREEN 1: LOGIN PORTAL SELECTION & STAFF AUTHENTICATION
+             ==================================================================== -->
+        <section id="screen-login" class="screen-view active">
+          <div class="login-container">
+            <div class="login-header-block">
+              <h1 style="font-size:28px; font-weight:700; letter-spacing:-0.4px;">Authorized Terminal Access</h1>
+              <p style="color:var(--text-secondary); margin-top:6px;">Select role portal and authenticate with individual credentials.</p>
+            </div>
+
+            <!-- Role Selection Cards -->
+            <div class="login-portal-grid">
+              <div class="portal-card clinical selected" data-portal="clinical">
+                <div class="portal-icon">🩺</div>
+                <div class="portal-title">Clinical Login</div>
+                <div class="portal-desc">Physicians, emergency triage clinicians, and nursing staff. Full clinical record access.</div>
+              </div>
+
+              <div class="portal-card hospital" data-portal="hospital">
+                <div class="portal-icon">📋</div>
+                <div class="portal-title">Hospital Login</div>
+                <div class="portal-desc">Patient registration, admissions, and records officers. Enrolls patients and verifies identity.</div>
+              </div>
+
+              <div class="portal-card admin" data-portal="admin">
+                <div class="portal-icon">🛡️</div>
+                <div class="portal-title">Admin Login</div>
+                <div class="portal-desc">Records administrators and system engineers. Data lifecycle, staff, devices, and audit.</div>
+              </div>
+            </div>
+
+            <!-- Authentication Form Card -->
+            <div class="login-card">
+              <div style="margin-bottom:20px; padding-bottom:12px; border-bottom:1px solid var(--border);">
+                <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;" id="login-portal-title">Clinical Portal</div>
+                <h3 style="font-size:17px; font-weight:600; margin-top:2px;">Staff Authentication</h3>
+              </div>
+
+              <form id="login-form">
+                <div class="form-group">
+                  <label class="form-label" for="input-username">Staff Username or Email</label>
+                  <input type="text" id="input-username" class="form-input" placeholder="e.g. doctor@lifelink.local" required autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="input-password">Secure Password</label>
+                  <div class="password-input-wrapper">
+                    <input type="password" id="input-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                    <button type="button" class="password-toggle-btn" id="btn-toggle-password">Show</button>
+                  </div>
+                </div>
+
+                <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width:100%; margin-top:14px;">
+                  Authenticate & Sign In
+                </button>
+              </form>
+
+              <div style="margin-top:20px; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); font-size:12px; color:var(--text-secondary); text-align:center;">
+                Demo Credentials: <code>doctor@lifelink.local</code> (Clinical@123) • <code>registrar@lifelink.local</code> (Hospital@123) • <code>recordsadmin@lifelink.local</code> (Admin@123)
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 2: MAIN WORKSTATION DASHBOARD
+             ==================================================================== -->
+        <section id="screen-dashboard" class="screen-view">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Emergency Workstation</h1>
+              <p class="page-description">Select a clinical workflow or patient identification task.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <!-- Register Patient -->
+            <div class="action-card" id="card-action-register">
+              <div>
+                <div class="action-card-header">
+                  <div class="action-card-icon">➕</div>
+                  <span class="action-card-badge">Workflow A</span>
+                </div>
+                <div class="action-card-title">Register Patient</div>
+                <div class="action-card-desc">10-Finger enrollment, OD/OS iris scans, face photo, and clinical records intake.</div>
+              </div>
+              <div class="action-card-link">Launch Enrollment Wizard →</div>
+            </div>
+
+            <!-- Retrieve Patient -->
+            <div class="action-card" id="card-action-retrieve">
+              <div>
+                <div class="action-card-header">
+                  <div class="action-card-icon">🔍</div>
+                  <span class="action-card-badge">Workflow B</span>
+                </div>
+                <div class="action-card-title">Retrieve Patient</div>
+                <div class="action-card-desc">1:N Biometric candidate identification and prioritized critical emergency alert summary.</div>
+              </div>
+              <div class="action-card-link">Scan & Identify Patient →</div>
+            </div>
+
+            <!-- Update Patient -->
+            <div class="action-card" id="card-action-update">
+              <div>
+                <div class="action-card-header">
+                  <div class="action-card-icon">✎</div>
+                  <span class="action-card-badge">Workflow C</span>
+                </div>
+                <div class="action-card-title">Update Patient</div>
+                <div class="action-card-desc">Authorized record modifications with change diff preview, rationale, and revision history.</div>
+              </div>
+              <div class="action-card-link">Modify Records →</div>
+            </div>
+
+            <!-- Admin Dashboard (Conditional on RBAC) -->
+            <div class="action-card" id="card-action-admin" style="display:none;">
+              <div>
+                <div class="action-card-header">
+                  <div class="action-card-icon">⚙</div>
+                  <span class="action-card-badge">Administration</span>
+                </div>
+                <div class="action-card-title">Admin Dashboard</div>
+                <div class="action-card-desc">Patient lifecycle (view, edit, archive, deletion requests), staff accounts, devices, and audit.</div>
+              </div>
+              <div class="action-card-link">Open Admin Console →</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 3: WORKFLOW A — PATIENT REGISTRATION WIZARD
+             ==================================================================== -->
+        <section id="screen-register" class="screen-view">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Patient Enrollment Wizard</h1>
+              <p class="page-description">Follow the guided multi-stage biometric and medical record acquisition sequence.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Cancel</button>
+          </div>
+
+          <!-- Minimal Horizontal Stepper -->
+          <div class="stepper registration-stepper">
+            <div class="step-item active" data-step="1"><span class="step-number">1</span> <span>Fingerprints</span></div>
+            <div class="step-item" data-step="2"><span class="step-number">2</span> <span>Irises</span></div>
+            <div class="step-item" data-step="3"><span class="step-number">3</span> <span>Photo</span></div>
+            <div class="step-item" data-step="4"><span class="step-number">4</span> <span>Medical Details</span></div>
+            <div class="step-item" data-step="5"><span class="step-number">5</span> <span>Review & Save</span></div>
+          </div>
+
+          <!-- Step 1: 10-Finger Interactive Matrix -->
+          <div id="reg-step-1" class="step-content-pane reg-step-pane">
+            <h3 style="font-size:17px; font-weight:600; margin-bottom:4px;">Step 1: Ten-Digit Fingerprint Enrollment</h3>
+            <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+              Sensor captures each finger over 3 successive acquisition passes. Select a digit and place the finger flat on the sensor.
+            </p>
+
+            <!-- 10 Fingers Matrix: R1..R5 and L1..L5 -->
+            <div class="fingerprint-matrix">
+              <div class="finger-slot-card active" data-pos="R1"><div class="finger-label">R1</div><div class="finger-sub">Right Thumb</div></div>
+              <div class="finger-slot-card" data-pos="R2"><div class="finger-label">R2</div><div class="finger-sub">Right Index</div></div>
+              <div class="finger-slot-card" data-pos="R3"><div class="finger-label">R3</div><div class="finger-sub">Right Middle</div></div>
+              <div class="finger-slot-card" data-pos="R4"><div class="finger-label">R4</div><div class="finger-sub">Right Ring</div></div>
+              <div class="finger-slot-card" data-pos="R5"><div class="finger-label">R5</div><div class="finger-sub">Right Little</div></div>
+              <div class="finger-slot-card" data-pos="L1"><div class="finger-label">L1</div><div class="finger-sub">Left Thumb</div></div>
+              <div class="finger-slot-card" data-pos="L2"><div class="finger-label">L2</div><div class="finger-sub">Left Index</div></div>
+              <div class="finger-slot-card" data-pos="L3"><div class="finger-label">L3</div><div class="finger-sub">Left Middle</div></div>
+              <div class="finger-slot-card" data-pos="L4"><div class="finger-label">L4</div><div class="finger-sub">Left Ring</div></div>
+              <div class="finger-slot-card" data-pos="L5"><div class="finger-label">L5</div><div class="finger-sub">Left Little</div></div>
+            </div>
+
+            <!-- Guided Capture Control Box -->
+            <div class="biometric-control-box">
+              <div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <h4 id="current-finger-title" style="font-size:16px; font-weight:700;">Finger R1</h4>
+                  <span id="fp-pass-indicator" class="status-pill">Pass 1 of 3</span>
+                </div>
+                <p id="current-finger-instruction" style="color:var(--text-muted); font-size:13px; margin-top:4px;">Place R1 flat on the optical sensor (pass 1 of 3)</p>
+              </div>
+              <div style="display:flex; gap:12px;">
+                <button id="btn-mark-fp-unavailable" class="btn btn-secondary">Mark Missing / Injured</button>
+                <button id="btn-trigger-fp-scan" class="btn btn-primary">Capture Impression</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2: Iris Capture & ISO Quality Screening -->
+          <div id="reg-step-2" class="step-content-pane reg-step-pane" style="display:none;">
+            <h3 style="font-size:17px; font-weight:600; margin-bottom:4px;">Step 2: Visible-Spectrum Iris Acquisition</h3>
+            <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+              Align patient eye within camera reticle. The system evaluates ISO/IEC 29794-6 sharpness, exposure, and glare in RAM before acceptance.
+            </p>
+
+            <div class="iris-capture-panel">
+              <div class="camera-viewport">
+                <div class="camera-guide-reticle"></div>
+                <div style="text-align:center; color:var(--text-muted); font-size:13px;">
+                  Live Camera Feed (Pi Zero W / USB Gadget)<br>
+                  <img id="iris-preview-od" style="display:none; width:100%; height:100%; object-fit:cover;" alt="OD Preview">
+                  <img id="iris-preview-os" style="display:none; width:100%; height:100%; object-fit:cover;" alt="OS Preview">
+                </div>
+              </div>
+
+              <div class="quality-meter-box">
+                <h4 style="font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">ISO/IEC 29794-6 Quality Screening</h4>
+                
+                <div class="meter-row">
+                  <div class="meter-label-row">
+                    <span>Sharpness / Focus (Laplacian &ge; 50)</span>
+                    <span id="meter-sharpness-val" style="font-weight:700;">0.0</span>
+                  </div>
+                  <div class="meter-bar"><div class="meter-fill" id="meter-sharpness" style="width:0%;"></div></div>
+                </div>
+
+                <div class="meter-row">
+                  <div class="meter-label-row">
+                    <span>Exposure / Illumination (Mean 35–220)</span>
+                    <span id="meter-exposure-val" style="font-weight:700;">0.0</span>
+                  </div>
+                  <div class="meter-bar"><div class="meter-fill" id="meter-exposure" style="width:0%;"></div></div>
+                </div>
+
+                <div class="meter-row">
+                  <div class="meter-label-row">
+                    <span>Corneal Glare (&le; 5%)</span>
+                    <span id="meter-glare-val" style="font-weight:700;">0.0%</span>
+                  </div>
+                  <div class="meter-bar"><div class="meter-fill" id="meter-glare" style="width:0%;"></div></div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+                  <button id="btn-capture-iris-od" class="btn btn-primary">Capture Right Eye (OD)</button>
+                  <button id="btn-capture-iris-os" class="btn btn-secondary">Capture Left Eye (OS)</button>
+                  <button id="btn-mark-iris-unavailable" class="btn btn-secondary">Mark Eye Unscannable (Exception)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 3: Face Photo Capture -->
+          <div id="reg-step-3" class="step-content-pane reg-step-pane" style="display:none;">
+            <h3 style="font-size:17px; font-weight:600; margin-bottom:4px;">Step 3: Patient Photograph</h3>
+            <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+              Acquired through wired camera for visual confirmation on patient medical charts.
+            </p>
+
+            <div style="display:flex; gap:24px; align-items:center; background:var(--surface); padding:24px; border-radius:var(--radius-md); border:1px solid var(--border);">
+              <div style="width:200px; height:160px; background:var(--surface-secondary); border-radius:var(--radius-sm); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+                <img id="patient-photo-preview" style="display:none; width:100%; height:100%; object-fit:cover;" alt="Patient Portrait">
+                <span style="color:var(--text-muted); font-size:13px;">No Photo Acquired</span>
+              </div>
+              <div style="flex:1;">
+                <h4 style="font-size:15px; font-weight:600; margin-bottom:6px;">Wired High-Resolution Camera</h4>
+                <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">Instruct the patient to face the terminal camera. The image will be cropped and linked to the encrypted record.</p>
+                <button id="btn-capture-photo" class="btn btn-primary">Capture Patient Photo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 4: Demographics, Emergency & Clinical Information -->
+          <div id="reg-step-4" class="step-content-pane reg-step-pane" style="display:none;">
+            <h3 style="font-size:17px; font-weight:600; margin-bottom:4px;">Step 4: Clinical & Demographic Data</h3>
+            <p style="color:var(--text-secondary); font-size:13px; margin-bottom:20px;">
+              Enter core patient information. High-priority allergy and medication entries will be immediately indexed for emergency retrieval.
+            </p>
+
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-header"><h4 class="card-title">1. Basic Identification</h4></div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label" for="reg-fullname">Full Legal Name *</label>
+                  <input type="text" id="reg-fullname" class="form-input" placeholder="e.g. Jane Doe" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-dob">Date of Birth *</label>
+                  <input type="date" id="reg-dob" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-gender">Sex / Gender</label>
+                  <select id="reg-gender" class="form-select">
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label" for="reg-bloodtype">Blood Group *</label>
+                  <select id="reg-bloodtype" class="form-select">
+                    <option value="O-Positive">O-Positive (O+)</option>
+                    <option value="O-Negative">O-Negative (O-)</option>
+                    <option value="A-Positive">A-Positive (A+)</option>
+                    <option value="A-Negative">A-Negative (A-)</option>
+                    <option value="B-Positive">B-Positive (B+)</option>
+                    <option value="B-Negative">B-Negative (B-)</option>
+                    <option value="AB-Positive">AB-Positive (AB+)</option>
+                    <option value="AB-Negative">AB-Negative (AB-)</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-phone">Contact Phone</label>
+                  <input type="tel" id="reg-phone" class="form-input" placeholder="+1-555-0100">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-address">Residential Address</label>
+                  <input type="text" id="reg-address" class="form-input" placeholder="City, State">
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-header"><h4 class="card-title">2. Emergency Contact</h4></div>
+              <div class="form-grid-3">
+                <div class="form-group">
+                  <label class="form-label" for="reg-em-name">Contact Full Name</label>
+                  <input type="text" id="reg-em-name" class="form-input" placeholder="e.g. Robert Doe">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-em-rel">Relationship</label>
+                  <input type="text" id="reg-em-rel" class="form-input" placeholder="e.g. Spouse / Next of Kin">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-em-phone">Emergency Phone</label>
+                  <input type="tel" id="reg-em-phone" class="form-input" placeholder="+1-555-0199">
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h4 class="card-title">3. Critical Medical Data</h4></div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="reg-allergies">Severe Drug & Material Allergies</label>
+                  <input type="text" id="reg-allergies" class="form-input" placeholder="e.g. Penicillin, Latex (comma separated)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-conditions">Chronic Conditions</label>
+                  <input type="text" id="reg-conditions" class="form-input" placeholder="e.g. Asthma, Type 2 Diabetes">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label class="form-label" for="reg-meds">Current Medications</label>
+                  <input type="text" id="reg-meds" class="form-input" placeholder="e.g. Lisinopril 10mg daily, Albuterol">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="reg-implants">Implanted Devices / Pacemaker</label>
+                  <input type="text" id="reg-implants" class="form-input" placeholder="e.g. Cardiac Pacemaker, Stent, None">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="reg-notes">Clinical Emergency Notes</label>
+                <textarea id="reg-notes" class="form-input" rows="2" placeholder="Critical triage instructions, organ donor status, baseline neurological notes..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: Pre-Commit Review & Duplicate Verification -->
+          <div id="reg-step-5" class="step-content-pane reg-step-pane" style="display:none;">
+            <h3 style="font-size:17px; font-weight:600; margin-bottom:4px;">Step 5: Pre-Commit Review & Verification</h3>
+            <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+              Review patient information and biometric completeness before committing to local encrypted PostgreSQL storage.
+            </p>
+
+            <div id="review-duplicate-notice" style="display:none; background:var(--surface); border:2px solid var(--primary); padding:12px; border-radius:var(--radius-sm); margin-bottom:16px; font-weight:600;"></div>
+
+            <div id="review-summary-content"></div>
+          </div>
+
+          <!-- Wizard Navigation Toolbar -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+            <button id="btn-reg-prev" class="btn btn-secondary" style="display:none;">← Previous Step</button>
+            <div style="margin-left:auto; display:flex; gap:12px;">
+              <button id="btn-reg-next" class="btn btn-primary">Next Step →</button>
+              <button id="btn-reg-commit" class="btn btn-primary" style="display:none;">Confirm & Save Patient Record</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 3B: REGISTRATION CONFIRMATION RECEIPT
+             ==================================================================== -->
+        <section id="screen-receipt" class="screen-view">
+          <div style="max-width:520px; margin:32px auto; background:var(--background); border:2px solid var(--primary); border-radius:var(--radius-md); padding:32px; text-align:center;">
+            <div style="width:48px; height:48px; border-radius:50%; background:var(--primary); color:#FFFFFF; font-size:22px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;">✓</div>
+            <h2 style="font-size:22px; font-weight:700; margin-bottom:6px;">Registration Committed Locally</h2>
+            <p style="color:var(--text-secondary); font-size:13px;">The patient record and encrypted biometrics have been durably stored in the local database and staged in the sync outbox.</p>
+
+            <div style="background:var(--surface); padding:18px; border-radius:var(--radius-sm); margin:20px 0; border:1px solid var(--border);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Assigned LifeLink Patient ID</div>
+              <div id="receipt-lifelink-id" style="font-family:var(--font-mono); font-size:26px; font-weight:700; color:var(--text-primary); margin:6px 0;">LL-2026-00000</div>
+              <div id="receipt-patient-name" style="font-size:15px; font-weight:600;">Patient Name</div>
+            </div>
+
+            <button class="btn btn-primary" onclick="app.showScreen('screen-dashboard')">Return to Dashboard</button>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 4: WORKFLOW B — RETRIEVE PATIENT & EMERGENCY SUMMARY
+             ==================================================================== -->
+        <section id="screen-retrieve" class="screen-view">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Emergency Patient Retrieval</h1>
+              <p class="page-description">Execute 1:N candidate search or manual identifier search.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+          </div>
+
+          <!-- Biometric Probe Trigger Panel -->
+          <div class="card" style="margin-bottom:20px;">
+            <h3 class="card-title" style="margin-bottom:12px;">Biometric Scan & Gallery Identification (1:N)</h3>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+              <button id="btn-probe-fingerprint" class="btn btn-primary">Capture Fingerprint Probe</button>
+              <button id="btn-probe-iris" class="btn btn-secondary">Capture Iris Probe</button>
+              <button id="btn-unidentified-patient" class="btn btn-danger" style="margin-left:auto;">+ Unidentified Trauma Patient</button>
+            </div>
+            <div id="retrieval-status-box" style="display:none; margin-top:14px; padding:12px; border-radius:var(--radius-sm); background:var(--surface); font-size:13px; border:1px solid var(--border);"></div>
+          </div>
+
+          <!-- High-Priority Critical Emergency Card -->
+          <div id="retrieval-results-card" style="display:none;"></div>
+
+          <!-- Manual Search Fallback -->
+          <div class="card" style="margin-top:20px;">
+            <h4 class="card-title">Manual Identifier Lookup Fallback</h4>
+            <p class="card-subtitle" style="margin-bottom:14px;">When biometrics fail or injury prevents scanning, enter LifeLink ID, full legal name, or phone number.</p>
+            <div style="display:flex; gap:12px;">
+              <input type="text" id="input-manual-search" class="form-input" style="max-width:380px;" placeholder="e.g. LL-2026-00001 or Jane Doe">
+              <button id="btn-manual-search" class="btn btn-secondary">Search Records</button>
+            </div>
+            <div id="manual-search-results" style="margin-top:16px;"></div>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 5: WORKFLOW C — UPDATE PATIENT & REVISION DIFF
+             ==================================================================== -->
+        <section id="screen-update" class="screen-view">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Update Patient Record</h1>
+              <p class="page-description">Modify permitted fields. All edits require a documented clinical/administrative rationale.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+          </div>
+
+          <div id="update-patient-list" style="margin-top:16px;"></div>
+        </section>
+
+        <!-- ====================================================================
+             SCREEN 6: ADMIN DASHBOARD
+             ==================================================================== -->
+        <section id="screen-admin" class="screen-view">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Administrative Console</h1>
+              <p class="page-description">Enterprise data lifecycle, staff governance, device health, and audit trails.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+          </div>
+
+          <!-- KPI Widgets -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Registered</div>
+              <div id="kpi-total-patients" class="kpi-value">0</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Active Records</div>
+              <div id="kpi-active-patients" class="kpi-value">0</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Archived Records</div>
+              <div id="kpi-archived-patients" class="kpi-value">0</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Staff Accounts</div>
+              <div id="kpi-total-staff" class="kpi-value">0</div>
+            </div>
+          </div>
+
+          <!-- Patient Management Table -->
+          <div class="data-table-container">
+            <div style="padding:14px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="font-size:15px; font-weight:700;">Patient Lifecycle Records</h3>
+              <input type="text" class="form-input" style="max-width:280px; min-height:36px; padding:6px 12px; font-size:13px;" placeholder="Filter by name or ID..." oninput="app.loadAdminPatients(null, this.value)">
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>LifeLink ID</th>
+                  <th>Full Name</th>
+                  <th>DOB</th>
+                  <th>Blood Group</th>
+                  <th>Status</th>
+                  <th>Biometrics</th>
+                  <th>Administrative Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-patients-tbody">
+                <tr><td colspan="7">Loading records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODALS
+       ==================================================================== -->
+
+  <!-- Modal: Controlled Deletion Request -->
+  <div id="modal-delete" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Request Record Deletion</h3>
+        <button class="modal-close btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+          Patient: <strong id="delete-modal-patient-name" style="color:var(--text-primary);">Patient</strong><br>
+          Hospital medical records are subject to legal retention obligations. Irreversible browser deletion is disallowed. Submitting this request initiates retention review and requires secondary administrative approval.
+        </p>
+        <input type="hidden" id="delete-modal-patient-id">
+        <div class="form-group">
+          <label class="form-label" for="delete-modal-reason">Mandatory Documented Rationale</label>
+          <textarea id="delete-modal-reason" class="form-input" rows="3" placeholder="e.g. Formal verified patient erasure request under medical privacy regulation..." required></textarea>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin:16px 0;">
+          <input type="checkbox" id="delete-modal-legal-hold" style="width:18px; height:18px;">
+          <label for="delete-modal-legal-hold" style="font-size:13px; font-weight:600;">I confirm that no legal, judicial, or clinical retention holds apply to this record.</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-danger" onclick="app.submitDeletionRequest()">Submit Deletion Request</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Record Update with Reason -->
+  <div id="modal-update" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="update-modal-title">Update Record</h3>
+        <button class="modal-close btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div>
+        <input type="hidden" id="update-modal-patient-id">
+        <div class="form-group">
+          <label class="form-label" for="update-modal-phone">Contact Phone Number</label>
+          <input type="tel" id="update-modal-phone" class="form-input" placeholder="New phone number...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="update-modal-clinical-notes">Clinical Notes & Updates (Clinician Only)</label>
+          <textarea id="update-modal-clinical-notes" class="form-input" rows="2" placeholder="Clinical observations..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="update-modal-reason">Mandatory Change Reason</label>
+          <input type="text" id="update-modal-reason" class="form-input" placeholder="e.g. Patient verified new phone number..." required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-primary" onclick="app.submitRecordUpdate()">Save Versioned Revision</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Unidentified Emergency Patient Intake -->
+  <div id="modal-unidentified" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Unidentified Trauma Patient Intake</h3>
+        <button class="modal-close btn btn-ghost btn-sm">✕</button>
+      </div>
+      <div>
+        <p style="color:var(--text-secondary); font-size:13px; margin-bottom:16px;">
+          For unconscious trauma patients where biometric or verbal identity is unobtainable.
+        </p>
+        <div class="form-group">
+          <label class="form-label" for="unidentified-gender">Apparent Sex / Gender</label>
+          <select id="unidentified-gender" class="form-select">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="unidentified-age">Apparent Estimated Age</label>
+          <input type="text" id="unidentified-age" class="form-input" placeholder="e.g. 25-30 years">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="unidentified-notes">Triage / Presentation Notes</label>
+          <textarea id="unidentified-notes" class="form-input" rows="2" placeholder="e.g. Unresponsive trauma intake from ambulance..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-close">Cancel</button>
+        <button class="btn btn-danger" onclick="app.submitUnidentifiedPatient()">Create Emergency Identity</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

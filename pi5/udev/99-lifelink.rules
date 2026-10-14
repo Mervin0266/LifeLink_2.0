@@ -1,0 +1,14 @@
+# LifeLink 2.0 - USB Peripheral Udev Rules for Raspberry Pi 5
+# Ensures deterministic symlinks and group access for ESP32 fingerprint serial host
+
+# Silicon Labs CP2102 USB-to-UART Bridge (Common ESP32 DevKit)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="lifelink-fingerprint", MODE="0666", GROUP="dialout"
+
+# WCH CH340 / CH341 USB-to-UART Bridge
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="lifelink-fingerprint", MODE="0666", GROUP="dialout"
+
+# FTDI FT232R USB-to-UART Bridge
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="lifelink-fingerprint", MODE="0666", GROUP="dialout"
+
+# Espressif USB JTAG/serial debug unit (ESP32-S3 / C3 native USB)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="303a", ATTRS{idProduct}=="1001", SYMLINK+="lifelink-fingerprint", MODE="0666", GROUP="dialout"
