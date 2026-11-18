@@ -4,9 +4,18 @@ Defines packet framing, CRC32 checksums, request IDs, and commands for the ESP32
 """
 
 import struct
-import zlib
-import uuid
-from typing import Tuple, Optional, Dict, Any
+
+# This module also runs on the ESP32 under MicroPython (copied next to main.py), which
+# has no `typing` or `uuid` module and provides CRC32 as `binascii.crc32`, not `zlib.crc32`.
+try:
+    from zlib import crc32 as _crc32
+except ImportError:  # MicroPython
+    from binascii import crc32 as _crc32  # type: ignore
+
+try:
+    from typing import Optional, Dict, Any
+except ImportError:  # MicroPython
+    pass
 
 MAGIC = b"LLFP"
 PROTOCOL_VERSION = 1
@@ -55,7 +64,7 @@ class SerialFrame:
     ) -> bytes:
         """Packs a frame with header, payload, and 32-bit CRC."""
         if len(request_id) != 16:
-            request_id = request_id.ljust(16, b"\x00")[:16]
+            request_id = (bytes(request_id) + b"\x00" * 16)[:16]
 
         payload_len = len(payload)
         header = struct.pack(
@@ -69,11 +78,11 @@ class SerialFrame:
             payload_len
         )
         packet_without_crc = header + payload
-        crc = zlib.crc32(packet_without_crc) & 0xFFFFFFFF
+        crc = _crc32(packet_without_crc) & 0xFFFFFFFF
         return packet_without_crc + struct.pack("<I", crc)
 
     @classmethod
-    def unpack(cls, raw_bytes: bytes) -> Optional[Dict[str, Any]]:
+    def unpack(cls, raw_bytes: bytes) -> "Optional[Dict[str, Any]]":
         """Unpacks and validates a binary frame with magic alignment and CRC verification."""
         idx = raw_bytes.find(MAGIC)
         if idx == -1:
@@ -94,7 +103,7 @@ class SerialFrame:
 
         packet_bytes = raw_bytes[:total_len]
         expected_crc = struct.unpack("<I", packet_bytes[-4:])[0]
-        actual_crc = zlib.crc32(packet_bytes[:-4]) & 0xFFFFFFFF
+        actual_crc = _crc32(packet_bytes[:-4]) & 0xFFFFFFFF
         if expected_crc != actual_crc:
             return {"error": "bad_crc", "status": STATUS_BAD_CHECKSUM}
 
