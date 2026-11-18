@@ -1,0 +1,31 @@
+[Unit]
+Description=LifeLink 2.0 Emergency Medical Kiosk Backend Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/lifelink
+Environment=PYTHONUNBUFFERED=1
+Environment=MOCK_MODE=false
+Environment=HARDWARE_MODE=true
+Environment=DB_TYPE=sqlite
+Environment=DB_NAME=lifelink_local.db
+EnvironmentFile=-/etc/lifelink/lifelink.env
+ExecStart=/opt/lifelink/venv/bin/python backend/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lifelink-backend
+
+# Security Sandboxing
+ProtectSystem=full
+ProtectHome=read-only
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

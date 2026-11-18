@@ -1,0 +1,60 @@
+=== index.html ===
+43: <button id="btn-logout" class="btn btn-secondary btn-sm" style="display:none;">
+53: <button class="nav-item active" id="nav-item-dashboard" onclick="app.showScreen('screen-dashboard')">
+54: <span class="nav-item-icon">⊞</span>
+57: <button class="nav-item" id="nav-item-register" onclick="app.startRegistration()">
+58: <span class="nav-item-icon">👤</span>
+61: <button class="nav-item" id="nav-item-retrieve" onclick="app.startRetrieval()">
+62: <span class="nav-item-icon">🔍</span>
+65: <button class="nav-item" id="nav-item-update" onclick="app.startUpdate()">
+66: <span class="nav-item-icon">✎</span>
+69: <button class="nav-item" id="nav-item-admin" style="display:none;" onclick="app.startAdmin()">
+70: <span class="nav-item-icon">⚙</span>
+98: <div class="portal-icon">🩺</div>
+104: <div class="portal-icon">📋</div>
+110: <div class="portal-icon">🛡️</div>
+133: <button type="button" class="password-toggle-btn" id="btn-toggle-password">Show</button>
+137: <button type="submit" id="btn-login-submit" class="btn btn-primary" style="width:100%; margin-top:14px;">
+165: <div class="action-card-icon">➕</div>
+178: <div class="action-card-icon">🔍</div>
+191: <div class="action-card-icon">✎</div>
+204: <div class="action-card-icon">⚙</div>
+224: <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Cancel</button>
+267: <button id="btn-mark-fp-unavailable" class="btn btn-secondary">Mark Missing / Injured</button>
+268: <button id="btn-trigger-fp-scan" class="btn btn-primary">Capture Impression</button>
+318: <button id="btn-capture-iris-od" class="btn btn-primary">Capture Right Eye (OD)</button>
+319: <button id="btn-capture-iris-os" class="btn btn-secondary">Capture Left Eye (OS)</button>
+320: <button id="btn-mark-iris-unavailable" class="btn btn-secondary">Mark Eye Unscannable (Exception)</button>
+341: <button id="btn-capture-photo" class="btn btn-primary">Capture Patient Photo</button>
+461: <button id="btn-reg-prev" class="btn btn-secondary" style="display:none;">← Previous Step</button>
+463: <button id="btn-reg-next" class="btn btn-primary">Next Step →</button>
+464: <button id="btn-reg-commit" class="btn btn-primary" style="display:none;">Confirm & Save Patient Record</button>
+484: <button class="btn btn-primary" onclick="app.showScreen('screen-dashboard')">Return to Dashboard</button>
+497: <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+504: <button id="btn-probe-fingerprint" class="btn btn-primary">Capture Fingerprint Probe</button>
+505: <button id="btn-probe-iris" class="btn btn-secondary">Capture Iris Probe</button>
+506: <button id="btn-unidentified-patient" class="btn btn-danger" style="margin-left:auto;">+ Unidentified Trauma Patient</button>
+520: <button id="btn-manual-search" class="btn btn-secondary">Search Records</button>
+535: <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+550: <button class="btn btn-secondary btn-sm" onclick="app.showScreen('screen-dashboard')">Dashboard</button>
+604: <button class="btn btn-primary btn-sm" onclick="app.openStaffModal()">+ Add Staff Account</button>
+638: <button class="modal-close btn btn-ghost btn-sm">✕</button>
+656: <button class="btn btn-secondary modal-close">Cancel</button>
+657: <button class="btn btn-danger" onclick="app.submitDeletionRequest()">Submit Deletion Request</button>
+667: <button class="modal-close btn btn-ghost btn-sm">✕</button>
+685: <button class="btn btn-secondary modal-close">Cancel</button>
+686: <button class="btn btn-primary" onclick="app.submitRecordUpdate()">Save Versioned Revision</button>
+696: <button class="modal-close btn btn-ghost btn-sm">✕</button>
+720: <button class="btn btn-secondary modal-close">Cancel</button>
+721: <button class="btn btn-danger" onclick="app.submitUnidentifiedPatient()">Create Emergency Identity</button>
+731: <button class="modal-close btn btn-ghost btn-sm" onclick="app.closeStaffModal()">✕</button>
+776: <button class="btn btn-secondary" onclick="app.closeStaffModal()">Cancel</button>
+777: <button class="btn btn-primary" id="btn-save-staff" onclick="app.saveStaffUser()">Save Account</button>
+
+=== app.js icon usage ===
+
+=== style.css icon rules ===
+267: .nav-item-icon {
+541: .portal-icon {
+630: .action-card-icon {
+1173: .nav-item span:not(.nav-item-icon) {

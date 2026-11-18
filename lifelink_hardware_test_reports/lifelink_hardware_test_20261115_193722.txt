@@ -1,0 +1,99 @@
+=================================================================
+      LIFELINK 2.0 HARDWARE DIAGNOSTIC REPORT (PI 5 HOST)
+=================================================================
+Date / Time       : 2026-11-15 19:37:22 UTC
+Diagnostic Mode   : QUICK
+Target Host       : MSI (Windows-11-10.0.26300-SP0)
+Overall Status    : FAIL
+Test Pass Rate    : 3 / 20
+=================================================================
+
+
+--- [PI 5 SYSTEM] ---
+[WARNING     ] SYS-01 - Raspberry Pi Model Identification
+             Result : Detected: Unknown
+             Data   : {"model": "Unknown", "is_pi5": false}
+[WARNING     ] SYS-02 - Operating System & Architecture
+             Result : OS: Windows-11-10.0.26300-SP0, Arch: AMD64, Kernel: 11
+             Data   : {"os": "Windows-11-10.0.26300-SP0", "kernel": "11", "arch": "AMD64", "is_arm64": false}
+[PASS        ] SYS-03 - Python Runtime Environment
+             Result : Python 3.13.3 (Path: C:\Python313\python.exe)
+             Data   : {"version": "3.13.3", "executable": "C:\\Python313\\python.exe"}
+[PASS        ] SYS-04 - Disk & RAM Availability
+             Result : Disk Free: 285.2 GB, RAM Available: 1024 MB
+             Data   : {"disk_free_gb": 285.24, "ram_avail_mb": 1024.0}
+[NOT VERIFIED] SYS-05 - Ethernet eth0 Configuration
+             Result : eth0 Exists: False, Carrier: 0, IP: Not Assigned (Expected: 192.168.50.1)
+             Data   : {"present": false, "carrier": "0", "ip": "Not Assigned"}
+[PASS        ] SYS-06 - System Clock Plausibility
+             Result : Local Time: 2026-11-16T01:07:22.158452 (Year Plausible: True)
+             Data   : {"year": 2026, "iso": "2026-11-16T01:07:22.158456"}
+
+--- [ESP32 USB] ---
+[FAIL        ] ESP-01 - USB Serial Device Enumeration
+             Result : Device Detected: False, Path: None Detected
+             Data   : {"candidates": [], "selected": "None Detected"}
+[BLOCKED     ] ESP-02 - ESP32 LLFP Handshake
+             Result : Cannot execute handshake: No USB serial device detected
+
+--- [GT-521F32 FINGERPRINT] ---
+[FAIL        ] FP-01 - GT-521F32 Sensor Readiness & UART2 Link
+             Result : Sensor Ready: False, UART2 Communication: NOT VERIFIED
+             Data   : {"sensor_ready": false, "uart_comm": "NOT VERIFIED"}
+[NOT TESTED  ] FP-02 - Physical Fingerprint Acquisition
+             Result : Interactive mode required (--interactive). No probe acquired in automated run.
+
+--- [PI 3B+ NETWORK] ---
+[FAIL        ] NET-01 - ICMP Ping Reachability (192.168.50.2)
+             Result : Pi 3B+ Ping: NO RESPONSE / UNREACHABLE
+             Data   : {"target_ip": "192.168.50.2", "ping_ok": false}
+[NOT VERIFIED] NET-02 - ARP Cache & Neighbor Table
+             Result : Neighbor Entry Present: False
+             Data   : {"arp_found": false}
+[FAIL        ] NET-03 - Camera Service TCP Port Discovery
+             Result : Camera Service Port: PORTS 5000/5001 CLOSED/UNREACHABLE
+             Data   : {"active_port": null, "tested_ports": [5000, 5001]}
+[FAIL        ] NET-04 - Camera Service HTTP Health Protocol
+             Result : Camera Health API: UNREACHABLE, Device: Unknown
+             Data   : {"online": false, "device": "Unknown", "sensor": "Unknown", "ir_led": {}}
+
+--- [PI 3B+ SERVICE] ---
+[BLOCKED     ] SRV-01 - Camera Service Status & Parameters
+             Result : Pi 3B+ camera daemon is unreachable over wired Ethernet
+
+--- [CAMERA HARDWARE] ---
+[BLOCKED     ] CAM-01 - Camera Module 3 NoIR Streaming & Capture
+             Result : Camera service unreachable at 192.168.50.2
+
+--- [IR ILLUMINATOR] ---
+[BLOCKED     ] IR-01 - GPIO18 IR LED Controller Status
+             Result : Camera service unreachable
+
+--- [CAMERA SWITCHING] ---
+[BLOCKED     ] SW-01 - Sequential Preview Mode Transitions
+             Result : Camera service unreachable
+
+--- [BACKEND INTEGRATION] ---
+[FAIL        ] BND-01 - LifeLink 2.0 Backend Core Health (Port 5000)
+             Result : Backend Status: OFFLINE / HTTP 400
+             Data   : {"online": false, "http_status": 400}
+[BLOCKED     ] BND-02 - Device Manager Peripheral Diagnostics
+             Result : Backend is offline on 127.0.0.1:5000
+
+=================================================================
+MANUAL PHYSICAL INSPECTION CHECKLIST (Non-Software Verifiable):
+=================================================================
+[ ] Pi 5 Official 27W USB-C PD Power Supply
+    Note: Requires physical multimeter/label check
+[ ] ESP32 USB Cable Data Line Continuity
+    Note: Requires inspection to ensure not charge-only cable
+[ ] GT-521F32 JST-SH Connector Seating
+    Note: Inspect RX(GPIO16), TX(GPIO17), 5V, GND pins
+[ ] Pi 3B+ 15-pin CSI Ribbon Orientation
+    Note: Contacts must face HDMI port, stiffener faces audio jack
+[ ] Pi 3B+ GPIO18 MOSFET Gate Resistor (220 ohm)
+    Note: Inspect switching circuit isolating Pi GPIO
+[ ] Dedicated Cat6 Ethernet Cable Integrity
+    Note: Direct link Pi 5 (eth0) <-> Pi 3B+ (eth0)
+
+[Report Generated Successfully]

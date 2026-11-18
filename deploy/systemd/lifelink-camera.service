@@ -1,0 +1,25 @@
+[Unit]
+Description=LifeLink 2.0 Wired Iris Camera Service (Pi Zero W)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=video
+SupplementaryGroups=gpio
+WorkingDirectory=/opt/lifelink-camera
+Environment=PYTHONUNBUFFERED=1
+Environment=PORT=5001
+Environment=HOST=192.168.55.2
+Environment=IR_LED_GPIO_PIN=18
+Environment=IR_LED_ACTIVE_HIGH=true
+Environment=IR_LED_ENABLED=true
+ExecStart=/usr/bin/python3 -m camera_service
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=lifelink-camera
+
+[Install]
+WantedBy=multi-user.target

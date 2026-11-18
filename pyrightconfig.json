@@ -1,0 +1,14 @@
+{
+  "include": [
+    ".",
+    "backend",
+    "iris-module",
+    "tests"
+  ],
+  "extraPaths": [
+    "iris-module/camera-client",
+    "iris-module/engine",
+    "backend"
+  ],
+  "reportMissingImports": "warning"
+}

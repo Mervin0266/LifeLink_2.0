@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "title": "LifeLink 2.0 Hardware Diagnostic Report",
+    "target_platform": "Raspberry Pi 5 (Debian Bookworm, ARM64)",
+    "diagnostic_mode": "quick",
+    "start_time": "2026-11-15T19:37:33.753571+00:00",
+    "end_time": "2026-11-15T19:37:33.906220+00:00",
+    "duration_seconds": 0.152649
+  },
+  "summary": {
+    "total": 6,
+    "passed": 3,
+    "failed": 0,
+    "warning": 2,
+    "blocked": 0,
+    "not_verified": 1,
+    "not_tested": 0,
+    "overall_status": "PASS"
+  },
+  "results": [
+    {
+      "test_id": "SYS-01",
+      "section": "PI 5 SYSTEM",
+      "name": "Raspberry Pi Model Identification",
+      "status": "WARNING",
+      "summary": "Detected: Unknown",
+      "duration_ms": 140.77,
+      "details": {
+        "model": "Unknown",
+        "is_pi5": false
+      }
+    },
+    {
+      "test_id": "SYS-02",
+      "section": "PI 5 SYSTEM",
+      "name": "Operating System & Architecture",
+      "status": "WARNING",
+      "summary": "OS: Windows-11-10.0.26300-SP0, Arch: AMD64, Kernel: 11",
+      "duration_ms": 0.0,
+      "details": {
+        "os": "Windows-11-10.0.26300-SP0",
+        "kernel": "11",
+        "arch": "AMD64",
+        "is_arm64": false
+      }
+    },
+    {
+      "test_id": "SYS-03",
+      "section": "PI 5 SYSTEM",
+      "name": "Python Runtime Environment",
+      "status": "PASS",
+      "summary": "Python 3.13.3 (Path: C:\\Python313\\python.exe)",
+      "duration_ms": 0.0,
+      "details": {
+        "version": "3.13.3",
+        "executable": "C:\\Python313\\python.exe"
+      }
+    },
+    {
+      "test_id": "SYS-04",
+      "section": "PI 5 SYSTEM",
+      "name": "Disk & RAM Availability",
+      "status": "PASS",
+      "summary": "Disk Free: 285.2 GB, RAM Available: 1024 MB",
+      "duration_ms": 0.0,
+      "details": {
+        "disk_free_gb": 285.24,
+        "ram_avail_mb": 1024.0
+      }
+    },
+    {
+      "test_id": "SYS-05",
+      "section": "PI 5 SYSTEM",
+      "name": "Ethernet eth0 Configuration",
+      "status": "NOT VERIFIED",
+      "summary": "eth0 Exists: False, Carrier: 0, IP: Not Assigned (Expected: 192.168.50.1)",
+      "duration_ms": 0.0,
+      "details": {
+        "present": false,
+        "carrier": "0",
+        "ip": "Not Assigned"
+      }
+    },
+    {
+      "test_id": "SYS-06",
+      "section": "PI 5 SYSTEM",
+      "name": "System Clock Plausibility",
+      "status": "PASS",
+      "summary": "Local Time: 2026-11-16T01:07:33.906207 (Year Plausible: True)",
+      "duration_ms": 0.0,
+      "details": {
+        "year": 2026,
+        "iso": "2026-11-16T01:07:33.906211"
+      }
+    }
+  ],
+  "manual_physical_inspection_checklist": [
+    {
+      "item": "Pi 5 Official 27W USB-C PD Power Supply",
+      "verified": "Requires physical multimeter/label check"
+    },
+    {
+      "item": "ESP32 USB Cable Data Line Continuity",
+      "verified": "Requires inspection to ensure not charge-only cable"
+    },
+    {
+      "item": "GT-521F32 JST-SH Connector Seating",
+      "verified": "Inspect RX(GPIO16), TX(GPIO17), 5V, GND pins"
+    },
+    {
+      "item": "Pi 3B+ 15-pin CSI Ribbon Orientation",
+      "verified": "Contacts must face HDMI port, stiffener faces audio jack"
+    },
+    {
+      "item": "Pi 3B+ GPIO18 MOSFET Gate Resistor (220 ohm)",
+      "verified": "Inspect switching circuit isolating Pi GPIO"
+    },
+    {
+      "item": "Dedicated Cat6 Ethernet Cable Integrity",
+      "verified": "Direct link Pi 5 (eth0) <-> Pi 3B+ (eth0)"
+    }
+  ]
+}

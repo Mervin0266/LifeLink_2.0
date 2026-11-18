@@ -1,0 +1,48 @@
+=================================================================
+      LIFELINK 2.0 HARDWARE DIAGNOSTIC REPORT (PI 5 HOST)
+=================================================================
+Date / Time       : 2026-11-16 09:04:52 UTC
+Diagnostic Mode   : QUICK
+Target Host       : MSI (Windows-11-10.0.26300-SP0)
+Overall Status    : PASS
+Test Pass Rate    : 3 / 6
+=================================================================
+
+
+--- [PI 5 SYSTEM] ---
+[WARNING     ] SYS-01 - Raspberry Pi Model Identification
+             Result : Detected: Unknown
+             Data   : {"model": "Unknown", "is_pi5": false}
+[WARNING     ] SYS-02 - Operating System & Architecture
+             Result : OS: Windows-11-10.0.26300-SP0, Arch: AMD64, Kernel: 11
+             Data   : {"os": "Windows-11-10.0.26300-SP0", "kernel": "11", "arch": "AMD64", "is_arm64": false}
+[PASS        ] SYS-03 - Python Runtime Environment
+             Result : Python 3.13.3 (Path: C:\Python313\python.exe)
+             Data   : {"version": "3.13.3", "executable": "C:\\Python313\\python.exe"}
+[PASS        ] SYS-04 - Disk & RAM Availability
+             Result : Disk Free: 288.7 GB, RAM Available: 1024 MB
+             Data   : {"disk_free_gb": 288.71, "ram_avail_mb": 1024.0}
+[NOT VERIFIED] SYS-05 - Ethernet eth0 Configuration
+             Result : eth0 Exists: False, Carrier: 0, IP: Not Assigned (Expected: 192.168.50.1)
+             Data   : {"present": false, "carrier": "0", "ip": "Not Assigned"}
+[PASS        ] SYS-06 - System Clock Plausibility
+             Result : Local Time: 2026-11-16T14:34:52.297979 (Year Plausible: True)
+             Data   : {"year": 2026, "iso": "2026-11-16T14:34:52.297982"}
+
+=================================================================
+MANUAL PHYSICAL INSPECTION CHECKLIST (Non-Software Verifiable):
+=================================================================
+[ ] Pi 5 Official 27W USB-C PD Power Supply
+    Note: Requires physical multimeter/label check
+[ ] ESP32 USB Cable Data Line Continuity
+    Note: Requires inspection to ensure not charge-only cable
+[ ] GT-521F32 JST-SH Connector Seating
+    Note: Inspect RX(GPIO16), TX(GPIO17), 5V, GND pins
+[ ] Pi 3B+ 15-pin CSI Ribbon Orientation
+    Note: Contacts must face HDMI port, stiffener faces audio jack
+[ ] Pi 3B+ GPIO18 MOSFET Gate Resistor (220 ohm)
+    Note: Inspect switching circuit isolating Pi GPIO
+[ ] Dedicated Cat6 Ethernet Cable Integrity
+    Note: Direct link Pi 5 (eth0) <-> Pi 3B+ (eth0)
+
+[Report Generated Successfully]
