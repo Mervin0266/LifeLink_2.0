@@ -41,21 +41,32 @@ def check_libraries():
 
 
 def check_models():
-    print("[3/5] Checking Machine Learning Model Weights...")
+    print("[3/5] Checking Iris Recognition Models (see docs/iris-models.md)...")
     from backend.config import Config
-    
-    seg_path = Config.LIGHTIRISNET_WEIGHTS
-    rec_path = Config.VIS_IRISFORMER_WEIGHTS
-    
-    if seg_path.exists():
-        print(f"      [OK] LightIrisNet: {seg_path} ({seg_path.stat().st_size / 1e6:.1f} MB)")
-    else:
-        print(f"      [WARNING] LightIrisNet weights not found at {seg_path}")
-        
-    if rec_path.exists():
-        print(f"      [OK] Vis-IrisFormer: {rec_path} ({rec_path.stat().st_size / 1e6:.1f} MB)")
-    else:
-        print(f"      [WARNING] Vis-IrisFormer weights not found at {rec_path}")
+
+    ok = True
+    for label, path, kind in (
+        ("LightIrisNet checkpoint", Config.LIGHTIRISNET_WEIGHTS, "file"),
+        ("Vis-IrisFormer checkpoint", Config.VIS_IRISFORMER_WEIGHTS, "file"),
+        ("LightIrisNet source (irisseg)", Config.LIGHTIRISNET_SRC / "irisseg", "dir"),
+        ("Vis-IrisFormer source (model)", Config.VIS_IRISFORMER_SRC / "model", "dir"),
+    ):
+        present = path.is_file() if kind == "file" else path.is_dir()
+        if present:
+            size = f" ({path.stat().st_size / 1e6:.1f} MB)" if kind == "file" else ""
+            print(f"      [OK] {label}: {path}{size}")
+        else:
+            ok = False
+            print(f"      [MISSING] {label}: {path}")
+    if not ok:
+        print("      [WARNING] Iris recognition will fail closed (HTTP 503 MODEL_UNAVAILABLE) until all model files are installed.")
+        return True
+
+    try:
+        from backend.biometrics.service import BiometricService
+        print(f"      [OK] Iris models load: {BiometricService.iris_model_version()}")
+    except Exception as exc:  # IrisEngineError or import failure
+        print(f"      [ERROR] Iris models present but failed to load: {exc}")
     return True
 
 

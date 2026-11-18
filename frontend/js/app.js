@@ -792,6 +792,11 @@ class LifeLinkApp {
     this.updateIrisQualityMeters(q);
   }
 
+  isIrisEngineFailure(err) {
+    const code = err && err.data ? err.data.error_type : null;
+    return ['MODEL_UNAVAILABLE', 'MODEL_LOAD_FAILED', 'MODEL_INFERENCE_FAILED', 'EMBEDDING_INVALID'].includes(code);
+  }
+
   async captureIris(eyeSide) {
     const btn = document.getElementById(`btn-capture-iris-${eyeSide.toLowerCase()}`);
     const otherEye = eyeSide === 'OD' ? 'OS' : 'OD';
@@ -855,6 +860,13 @@ class LifeLinkApp {
         }
       } catch (err) {
         if (this.isIrisLoopCancelled) break;
+
+        if (this.isIrisEngineFailure(err)) {
+          // Iris models unavailable / failing on the Pi 5: rescanning cannot help.
+          if (feedback) feedback.textContent = `Iris recognition unavailable (${err.data.error_type}): ${err.data.message}`;
+          this.showToast('Iris recognition is unavailable. Contact technical support.', 'error');
+          break;
+        }
 
         const reason = err.data?.message || err.message || 'Acquisition incomplete';
         if (feedback) {
@@ -1254,7 +1266,7 @@ class LifeLinkApp {
                   <span class="loading-spinner"></span>
                   <div>
                     <strong>[PROBE ACQUIRED]</strong> Template extracted on attempt ${attempt}.<br>
-                    <span style="color:var(--text-secondary);">Extracting 512-d Vis-IrisFormer embedding & searching 1:N local database gallery...</span>
+                    <span style="color:var(--text-secondary);">Extracting Vis-IrisFormer patch embeddings (128&times;768) &amp; searching 1:N local database gallery...</span>
                   </div>
                 </div>
               `;
@@ -1274,6 +1286,11 @@ class LifeLinkApp {
             }
           } catch (err) {
             if (this.isRetrievalIrisLoopCancelled) break;
+            if (this.isIrisEngineFailure(err)) {
+              // Fail closed: no iris identification is possible, do not fall through to a NO_MATCH.
+              if (btnCancel) btnCancel.style.display = 'none';
+              throw err;
+            }
             const reason = err.data?.message || err.message || 'Frame not optimal';
             if (feedback) {
               feedback.innerHTML = `<span style="color:var(--warning, #f59e0b); font-weight:600;">⚠ Attempt ${attempt}:</span> ${reason}. Rescanning in next 3s window...`;
@@ -1366,6 +1383,14 @@ class LifeLinkApp {
             <span style="font-size:12px; color:var(--text-secondary);">Align the eye 12–15 cm from lens with wide open eyelids and hold still. Click "Capture Iris Probe" to retry.</span>
           </div>
         `;
+      } else if (this.isIrisEngineFailure(e)) {
+        statusBox.innerHTML = `
+          <div style="padding:4px 0;">
+            <strong style="color:var(--danger, #ef4444);">[⚠️ IRIS RECOGNITION UNAVAILABLE]</strong> <span class="iris-engine-error"></span><br>
+            <span style="font-size:12px; color:var(--text-secondary);">No identification was performed. The iris recognition models on this terminal are not loaded; use fingerprint or manual lookup and contact technical support.</span>
+          </div>
+        `;
+        statusBox.querySelector('.iris-engine-error').textContent = `${errType}: ${e.message}`;
       } else if (errType === 'HARDWARE_DISCONNECTED' || errType === 'HARDWARE_UNAVAILABLE' || e.status === 503) {
         const devName = type === 'fingerprint' ? 'ESP32 Optical Fingerprint Sensor' : 'Pi 3B+ Camera Substation (192.168.50.2)';
         statusBox.innerHTML = `

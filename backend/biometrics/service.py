@@ -9,12 +9,42 @@ Implements:
 """
 
 import base64
+import logging
+import sys
+import threading
 import time
+from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
+from backend.config import Config
 from backend.database.connection import Database
 from backend.database.crypto import TemplateCrypto
 from backend.devices.manager import DeviceManager
 
+
+def _ensure_engine_path() -> None:
+    """Puts iris-module/engine (bare-name modules) on sys.path."""
+    candidates = [
+        Config.BASE_DIR / "iris-module" / "engine",
+        Config.BASE_DIR / "iris-engine",
+        Path("/opt/lifelink/iris-engine"),
+        Path(__file__).resolve().parent.parent.parent / "iris-module" / "engine",
+        Path(__file__).resolve().parent.parent / "iris-engine",
+    ]
+    for c in candidates:
+        if c.exists() and str(c) not in sys.path:
+            sys.path.insert(0, str(c))
+
+
+_ensure_engine_path()
+# iris_errors has no third-party imports, so error mapping works even without torch.
+from iris_errors import (  # type: ignore  # noqa: E402
+    IrisEngineError,
+    IrisModelUnavailableError,
+    InvalidIrisImageError,
+    SYSTEM_ERRORS,
+)
+
+logger = logging.getLogger("LifeLink.Biometrics")
 crypto = TemplateCrypto()
 
 
@@ -25,6 +55,12 @@ class BiometricService:
     FINGERPRINT_VERIFY_THRESHOLD = 0.50
     IRIS_VERIFY_THRESHOLD = 0.80  # Baseline cosine threshold
     IRIS_AMBIGUITY_MARGIN = 0.05   # Score difference required to avoid INCONCLUSIVE state
+
+    # One trained iris pipeline per process (loading both checkpoints is expensive).
+    # A load failure is cached too: install or fix the models, then restart the backend.
+    _iris_pipeline = None
+    _iris_pipeline_error: Optional[IrisEngineError] = None
+    _iris_pipeline_lock = threading.Lock()
 
     @classmethod
     def verify_fingerprint_1_to_1(cls, patient_id: str, probe_template_b64: str) -> Dict[str, Any]:
@@ -91,10 +127,15 @@ class BiometricService:
         best_score = 0.0
         best_eye = None
 
+        # Raises IrisEngineError (model unavailable, invalid probe, ...): never a silent NO_MATCH.
+        probe_embedding = cls._resolve_iris_embedding(probe_bytes)
         for row in enrolled_irises:
-            enc_bytes = row["encrypted_template"]
-            raw_enrolled = crypto.decrypt(enc_bytes)
-            sim = cls._compare_iris_templates(probe_bytes, raw_enrolled)
+            enrolled_embedding = cls._enrolled_iris_embedding(
+                crypto.decrypt(row["encrypted_template"]), patient_id, row["eye_side"]
+            )
+            if enrolled_embedding is None:
+                continue
+            sim = cls._iris_similarity(probe_embedding, enrolled_embedding)
             if sim > best_score:
                 best_score = sim
                 best_eye = row["eye_side"]
@@ -148,9 +189,15 @@ class BiometricService:
             WHERE p.status = 'active';
             """
             rows = Database.execute_query(query)
+            # Raises IrisEngineError (model unavailable, invalid probe, ...): never a silent NO_MATCH.
+            probe_embedding = cls._resolve_iris_embedding(probe_bytes)
             for r in rows:
-                raw_enrolled = crypto.decrypt(r["encrypted_template"])
-                score = cls._compare_iris_templates(probe_bytes, raw_enrolled)
+                enrolled_embedding = cls._enrolled_iris_embedding(
+                    crypto.decrypt(r["encrypted_template"]), r["patient_id"], r["eye_side"]
+                )
+                if enrolled_embedding is None:
+                    continue
+                score = cls._iris_similarity(probe_embedding, enrolled_embedding)
                 if score >= 0.50:  # Candidate shortlist threshold
                     candidates.append({
                         "patient_id": r["patient_id"],
@@ -198,84 +245,100 @@ class BiometricService:
             }
 
     @classmethod
+    def _get_iris_pipeline(cls):
+        """Returns the process-wide trained IrisPipelineService, or raises IrisEngineError."""
+        if cls._iris_pipeline is not None:
+            return cls._iris_pipeline
+        with cls._iris_pipeline_lock:
+            if cls._iris_pipeline is not None:
+                return cls._iris_pipeline
+            if cls._iris_pipeline_error is not None:
+                raise cls._iris_pipeline_error
+            try:
+                try:
+                    from service import IrisPipelineService  # type: ignore
+                except ImportError as exc:
+                    raise IrisModelUnavailableError(
+                        f"Iris engine dependencies could not be imported: {exc}", ["iris-engine"]
+                    ) from exc
+                cls._iris_pipeline = IrisPipelineService()
+                logger.info("[IRIS ENGINE] Models loaded: %s", cls._iris_pipeline.model_version)
+            except IrisEngineError as exc:
+                logger.error("[IRIS ENGINE] %s: %s", exc.code, exc)
+                cls._iris_pipeline_error = exc
+                raise
+            return cls._iris_pipeline
+
+    @classmethod
+    def _reset_iris_pipeline(cls) -> None:
+        """Drops the cached pipeline and cached load error (tests / operator reload)."""
+        with cls._iris_pipeline_lock:
+            cls._iris_pipeline = None
+            cls._iris_pipeline_error = None
+
+    @classmethod
+    def iris_engine_status(cls) -> Dict[str, Any]:
+        """Non-loading status snapshot for health reporting (no filesystem paths)."""
+        if cls._iris_pipeline is not None:
+            return {"state": "ready", "model_version": cls._iris_pipeline.model_version}
+        if cls._iris_pipeline_error is not None:
+            return {"state": "unavailable", **cls._iris_pipeline_error.public_dict()}
+        return {"state": "not_loaded"}
+
+    @classmethod
+    def iris_model_version(cls) -> str:
+        return cls._get_iris_pipeline().model_version
+
+    @classmethod
     def _compare_iris_templates(cls, probe_bytes: bytes, enrolled_bytes: bytes) -> float:
         """
-        Compares an acquired iris probe against an enrolled template.
-        Supports:
-          1. Direct identical byte buffers (score = 0.99)
-          2. Extracted embedding tensors (128x768 float32) via patch-wise cosine similarity
-          3. JPEG/PNG image crops (decoded, segmented, normalized and feature-extracted via IrisPipelineService)
-          4. Fallback to synthetic string / byte correlation
+        Compares two encoded eye images (JPEG/PNG) with the trained iris pipeline.
+        Raises IrisEngineError if either image cannot be processed or the models are unavailable.
         """
-        if not probe_bytes or not enrolled_bytes:
-            return 0.0
-        if probe_bytes == enrolled_bytes:
-            return 0.99
+        return cls._iris_similarity(
+            cls._resolve_iris_embedding(probe_bytes), cls._resolve_iris_embedding(enrolled_bytes)
+        )
 
-        # Try to resolve and compare embeddings if images or embedding tensors are present
+    @classmethod
+    def _iris_similarity(cls, emb_a, emb_b) -> float:
+        from recognizer import IrisRecognizer  # type: ignore
+        return IrisRecognizer.compare(emb_a, emb_b)
+
+    @classmethod
+    def _enrolled_iris_embedding(cls, raw_enrolled: bytes, patient_id: str, eye_side: str):
+        """
+        Embedding for one gallery entry. Per-image failures (undecodable data, no iris found)
+        skip that entry with a warning; system failures (models unavailable, inference error)
+        propagate so identification aborts instead of returning a misleading NO_MATCH.
+        """
         try:
-            emb_probe = cls._resolve_iris_embedding(probe_bytes)
-            emb_enrolled = cls._resolve_iris_embedding(enrolled_bytes)
-            if emb_probe is not None and emb_enrolled is not None:
-                cls._ensure_engine_path()
-                from recognizer import IrisRecognizer  # type: ignore
-                return IrisRecognizer.compare(emb_probe, emb_enrolled)
-        except Exception:
-            pass
-
-        return cls._mock_cosine_similarity(probe_bytes, enrolled_bytes)
+            return cls._resolve_iris_embedding(raw_enrolled)
+        except SYSTEM_ERRORS:
+            raise
+        except IrisEngineError as exc:
+            logger.warning(
+                "[IRIS MATCH] Skipping enrolled iris (patient=%s, eye=%s): %s %s",
+                patient_id, eye_side, exc.code, exc,
+            )
+            return None
 
     @classmethod
     def _resolve_iris_embedding(cls, data_bytes: bytes):
-        """Resolves byte buffer to (128, 768) float32 embedding."""
+        """
+        Decodes an encoded eye image (JPEG/PNG) and runs the trained pipeline.
+        Returns a validated (128, 768) float32 embedding. Raises IrisEngineError on any failure.
+        Raw embedding buffers are not accepted: every template must come from model inference.
+        """
         if not data_bytes:
-            return None
-        # Check if already a 128x768 float32 array (393,216 bytes)
-        if len(data_bytes) == 393216:
-            import numpy as np
-            arr = np.frombuffer(data_bytes, dtype=np.float32)
-            if len(arr) == 128 * 768:
-                return arr.reshape((128, 768))
-
-        # Check if it's a JPEG or PNG image
-        if data_bytes.startswith(b"\xff\xd8") or data_bytes.startswith(b"\x89PNG"):
-            import cv2
-            import numpy as np
-            nparr = np.frombuffer(data_bytes, np.uint8)
-            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            if img is not None and img.size > 0:
-                cls._ensure_engine_path()
-                from service import IrisPipelineService  # type: ignore
-                pipeline = IrisPipelineService()
-                res = pipeline.process_eye_image(img)
-                return res.get("embedding")
-
-        return None
-
-    @staticmethod
-    def _ensure_engine_path():
-        import sys
-        from pathlib import Path
-        from backend.config import Config
-        candidates = [
-            Config.BASE_DIR / "iris-module" / "engine",
-            Config.BASE_DIR / "iris-engine",
-            Path("/opt/lifelink/iris-engine"),
-            Path(__file__).resolve().parent.parent.parent / "iris-module" / "engine",
-            Path(__file__).resolve().parent.parent / "iris-engine",
-        ]
-        for c in candidates:
-            if c.exists() and str(c) not in sys.path:
-                sys.path.insert(0, str(c))
-
-    @staticmethod
-    def _mock_cosine_similarity(buf_a: bytes, buf_b: bytes) -> float:
-        """Computes synthetic similarity score between two template byte buffers."""
-        if not buf_a or not buf_b:
-            return 0.0
-        # If identical
-        if buf_a == buf_b:
-            return 0.99
-        min_len = min(len(buf_a), len(buf_b))
-        matches = sum(1 for i in range(min_len) if buf_a[i] == buf_b[i])
-        return round(0.40 + (matches / min_len) * 0.55, 4)
+            raise InvalidIrisImageError("Empty iris image data")
+        if not (data_bytes.startswith(b"\xff\xd8") or data_bytes.startswith(b"\x89PNG")):
+            raise InvalidIrisImageError("Iris data is not a JPEG or PNG image")
+        import cv2
+        import numpy as np
+        img = cv2.imdecode(np.frombuffer(data_bytes, np.uint8), cv2.IMREAD_COLOR)
+        if img is None or img.size == 0:
+            raise InvalidIrisImageError("Iris image could not be decoded")
+        pipeline = cls._get_iris_pipeline()
+        # OpenCV decodes BGR; the pipeline (LightIrisNet was trained on RGB) expects RGB.
+        res = pipeline.process_eye_image(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        return res["embedding"]

@@ -23,10 +23,12 @@ devices_bp = Blueprint("devices", __name__, url_prefix="/api/v1/devices")
 @devices_bp.route("/health", methods=["GET"])
 def health():
     """System and hardware peripheral health diagnostic endpoint."""
+    from backend.biometrics.service import BiometricService
     manager = DeviceManager()
     return jsonify({
         "status": "success",
-        "health": manager.get_health()
+        "health": manager.get_health(),
+        "iris_engine": BiometricService.iris_engine_status()
     }), 200
 
 
@@ -205,26 +207,38 @@ def fingerprint_capture_probe():
 
 def _extract_and_validate_iris_template(image_bytes: bytes, eye_side: str) -> Tuple[bool, Dict[str, Any]]:
     """
-    Attempts immediate iris segmentation and template extraction on Pi 5.
-    Returns (True, template_dict) if a valid iris template was extracted, or (False, error_dict) if extraction failed.
+    Runs the trained iris pipeline on the captured frame (Pi 5).
+    Returns (True, template_info) when a genuine embedding was extracted, otherwise
+    (False, error_info) where error_info carries `error_type`, `http_status` and
+    `retryable` (True only when a new camera frame could succeed).
     """
+    from backend.biometrics.service import BiometricService, IrisEngineError
+    from iris_errors import RETRYABLE_CAPTURE_ERRORS  # type: ignore
+
     if not image_bytes:
-        return False, {"reason": "No image bytes received from camera"}
+        return False, {"reason": "No image bytes received from camera", "error_type": "INVALID_IRIS_IMAGE",
+                       "http_status": 422, "retryable": True}
 
     try:
-        from backend.biometrics.service import BiometricService
         embedding = BiometricService._resolve_iris_embedding(image_bytes)
-        if embedding is not None and len(embedding) > 0:
-            return True, {
-                "status": "extracted",
-                "model_version": "Vis-IrisFormer-v1",
-                "embedding_dim": 512,
-                "storage_vault": "AES-256-GCM"
-            }
-        return False, {"reason": "Iris features could not be extracted; boundary or pupil not distinct."}
+        return True, {
+            "status": "extracted",
+            "model_version": BiometricService.iris_model_version(),
+            "embedding_shape": list(embedding.shape),
+            "segmentation_mode": "ML_INFERENCE",
+            "storage_vault": "AES-256-GCM"
+        }
+    except IrisEngineError as exc:
+        retryable = isinstance(exc, RETRYABLE_CAPTURE_ERRORS)
+        log = logger.info if retryable else logger.error
+        log(f"[IRIS EXTRACTION] {exc.code}: {exc}")
+        public = exc.public_dict()
+        return False, {"reason": public["message"], "error_type": exc.code,
+                       "http_status": 422 if retryable else exc.http_status, "retryable": retryable}
     except Exception as exc:
-        logger.warning(f"[IRIS EXTRACTION] Error during template validation: {exc}")
-        return False, {"reason": f"Template extraction error: {str(exc)}"}
+        logger.error(f"[IRIS EXTRACTION] Unexpected error during template extraction: {exc}", exc_info=True)
+        return False, {"reason": "Iris template extraction failed unexpectedly.", "error_type": "MODEL_INFERENCE_FAILED",
+                       "http_status": 500, "retryable": False}
 
 
 @devices_bp.route("/camera/capture-iris", methods=["POST"])
@@ -269,10 +283,22 @@ def camera_capture_iris():
                     "image_b64": b64_img,
                     "template": template_info
                 }), 200
+            elif not template_info.get("retryable", True):
+                # Iris engine unavailable or failing: stop the UI rescan loop, do not report a template.
+                manager.update_job_status(job_id, "failed", {"error_type": template_info["error_type"]})
+                return jsonify({
+                    "status": "error",
+                    "template_extracted": False,
+                    "job_id": job_id,
+                    "eye_side": eye_side,
+                    "error_type": template_info["error_type"],
+                    "message": template_info["reason"]
+                }), template_info["http_status"]
             else:
                 reason = template_info.get("reason", "Iris template could not be extracted.")
                 manager.update_job_status(job_id, "failed", {"reason": reason})
                 return jsonify({
+                    "error_type": template_info.get("error_type"),
                     "status": "retry",
                     "template_extracted": False,
                     "job_id": job_id,
@@ -386,10 +412,22 @@ def camera_capture_probe():
                     "image_b64": b64_img,
                     "message": "Iris probe captured and template extracted successfully."
                 }), 200
+            elif not template_info.get("retryable", True):
+                # Iris engine unavailable or failing: stop the UI rescan loop, do not report a template.
+                manager.update_job_status(job_id, "failed", {"error_type": template_info["error_type"]})
+                return jsonify({
+                    "status": "error",
+                    "template_extracted": False,
+                    "job_id": job_id,
+                    "eye_side": eye_side,
+                    "error_type": template_info["error_type"],
+                    "message": template_info["reason"]
+                }), template_info["http_status"]
             else:
                 reason = template_info.get("reason", "Iris template could not be extracted.")
                 manager.update_job_status(job_id, "failed", {"reason": reason})
                 return jsonify({
+                    "error_type": template_info.get("error_type"),
                     "status": "retry",
                     "template_extracted": False,
                     "job_id": job_id,
