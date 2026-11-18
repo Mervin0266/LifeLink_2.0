@@ -17,6 +17,8 @@ LifeLink 2.0 integrates the computer vision and machine learning components from
 
 This document specifies the exact classes, weights, input/output tensors, ARM64 optimization strategies, and adapter boundaries.
 
+> **Current installation, configuration and fail-closed behaviour:** see [`docs/iris-models.md`](iris-models.md). Where this plan differs from that document, `iris-models.md` reflects the implemented code.
+
 ---
 
 ## 2. Component Pipeline Architecture
@@ -59,13 +61,13 @@ Iris Template: 128 Patch Embeddings x 768 Float32 (~393 KB uncompressed)
 - **Model:** `MobileNetV3Large_DeepLabV3Plus`
 - **Source Files in Upstream:** `LightIrisNet/src/irisseg/_test_impl.py`, `irisseg/models.py`
 - **Adapter in LifeLink 3.0:** `iris-module/engine/segmenter.py` (`LightIrisNetSegmenter`)
-- **Input:** Eye crop image $(H \times W \times 3)$ in RGB format, resized to $224 \times 224$ or $256 \times 256$ with ImageNet normalization.
+- **Input:** Eye image $(H \times W \times 3)$ in RGB format at native resolution (edge-padded to a multiple of 32), ImageNet mean/std normalization — as in upstream `irisseg._test_impl.predict`.
 - **Output:**
   - `iris_mask`: $(H \times W)$ boolean numpy array where iris pixels are 1.
   - `pupil_mask`: $(H \times W)$ boolean numpy array where pupil pixels are 1.
   - `iris_ellipse`: `((cx, cy), (major, minor), angle)`
   - `pupil_ellipse`: `((cx, cy), (major, minor), angle)`
-- **Checkpoint:** `LightIrisNet/model/best_mobilenetv3.pt` (17.2 MB).
+- **Checkpoint:** `best_mobilenetv3.pt` (17.2 MB), configured via `LIGHTIRISNET_WEIGHTS` (default `models/best_mobilenetv3.pt`; not committed).
 
 ### 3.2 ARM64 Optimization & Execution
 - In evaluation mode (`model.eval()`) with `torch.inference_mode()`.
@@ -100,13 +102,13 @@ Iris Template: 128 Patch Embeddings x 768 Float32 (~393 KB uncompressed)
   Each patch is projected to embedding dimension $D = 768$.
 - **Transformer Encoder Stack:** 12 layers, 12 attention heads, hidden dim 768.
 - **Output Template:** Tensor of shape $(128, 768)$ in float32.
-- **Checkpoint:** `LifeLink/models/vis_irisformer/sota.pth` (453.4 MB).
+- **Checkpoint:** `sota.pth` (453.4 MB), configured via `VIS_IRISFORMER_WEIGHTS` (default `models/sota.pth`; not committed).
 
 ### 5.2 Pairwise Matching Algorithm
 - Given probe template $A \in \mathbb{R}^{128 \times 768}$ and gallery template $B \in \mathbb{R}^{128 \times 768}$:
   $$\text{Similarity}(A, B) = \frac{1}{128} \sum_{i=1}^{128} \frac{A_i \cdot B_i}{\|A_i\| \|B_i\|}$$
 - Returns scalar cosine score $S \in [-1.0, 1.0]$.
-- Initial operational threshold: $S \ge 0.84$ triggers a candidate match (subject to empirical calibration).
+- Implemented threshold: `BiometricService.IRIS_VERIFY_THRESHOLD = 0.80` (0.84 was proposed here). Neither value is calibrated; with the real checkpoints unrelated non-iris inputs already score ≈ 0.89 — see `docs/iris-models.md` §5.
 
 ---
 

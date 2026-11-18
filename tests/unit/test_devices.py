@@ -72,7 +72,12 @@ def test_fingerprint_3_stage_enrollment(client, registrar_token):
     assert d3["step_result"]["template_b64"] is not None
 
 
-def test_camera_quality_and_iris_capture(client, registrar_token):
+def test_camera_quality_and_iris_capture(client, registrar_token, monkeypatch):
+    from backend.devices import routes as device_routes
+    # Camera behaviour under test; iris template extraction (trained models) is stubbed
+    # so this test does not depend on model weights (covered by test_iris_engine.py).
+    monkeypatch.setattr(device_routes, "_extract_and_validate_iris_template",
+                        lambda image_bytes, eye_side: (True, {"status": "extracted", "model_version": "TEST-STUB"}))
     headers = {"Authorization": f"Bearer {registrar_token}"}
     resp = client.post("/api/v1/devices/camera/capture-iris", json={
         "eye_side": "OD"
@@ -146,8 +151,13 @@ def test_fingerprint_capture_probe_success(client, registrar_token):
     assert data.get("template_size", 0) > 0
 
 
-def test_camera_capture_probe_success(client, registrar_token):
+def test_camera_capture_probe_success(client, registrar_token, monkeypatch):
     """Verifies camera iris probe acquisition with quality evaluation for 1:N retrieval."""
+    from backend.devices import routes as device_routes
+    # Camera behaviour under test; iris template extraction (trained models) is stubbed
+    # so this test does not depend on model weights (covered by test_iris_engine.py).
+    monkeypatch.setattr(device_routes, "_extract_and_validate_iris_template",
+                        lambda image_bytes, eye_side: (True, {"status": "extracted", "model_version": "TEST-STUB"}))
     headers = {"Authorization": f"Bearer {registrar_token}"}
     resp = client.post("/api/v1/devices/camera/capture-probe", json={"eye_side": "OD"}, headers=headers)
     assert resp.status_code == 200

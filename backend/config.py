@@ -37,6 +37,20 @@ for env_path in _candidate_envs:
         load_dotenv(dotenv_path=env_path)
 
 
+def _resolve_path_setting(env_var: str, default: Path) -> Path:
+    """Resolves a filesystem path setting.
+
+    The environment variable wins when set and non-empty. Relative values are
+    resolved against BASE_DIR (the repository root), never the process cwd,
+    so the result does not depend on where the backend was started from.
+    """
+    raw = os.getenv(env_var, "").strip()
+    path = Path(raw).expanduser() if raw else Path(default)
+    if not path.is_absolute():
+        path = BASE_DIR / path
+    return path.resolve()
+
+
 class Config:
     """Application configuration holder."""
 
@@ -114,10 +128,25 @@ class Config:
     SYNC_ENABLED: bool = os.getenv("SYNC_ENABLED", "false").lower() in ("true", "1", "yes")
     SYNC_INTERVAL_SECONDS: int = int(os.getenv("SYNC_INTERVAL_SECONDS", "30"))
 
-    # Model Weights Paths
-    LIGHTIRISNET_WEIGHTS: Path = (
-        BASE_DIR.parent.parent / "LifeLink" / "LightIrisNet" / "model" / "best_mobilenetv3.pt"
+    # Iris recognition models (see docs/iris-models.md).
+    # Checkpoints and the upstream model source code are NOT part of this
+    # repository. Every path can be overridden; relative values resolve
+    # against the repository root. Missing files make the iris engine fail
+    # closed (HTTP 503 MODEL_UNAVAILABLE); there is no synthetic fallback.
+    IRIS_MODEL_DIR: Path = _resolve_path_setting("IRIS_MODEL_DIR", BASE_DIR / "models")
+    LIGHTIRISNET_WEIGHTS: Path = _resolve_path_setting(
+        "LIGHTIRISNET_WEIGHTS", IRIS_MODEL_DIR / "best_mobilenetv3.pt"
     )
-    VIS_IRISFORMER_WEIGHTS: Path = (
-        BASE_DIR.parent.parent / "LifeLink" / "models" / "vis_irisformer" / "sota.pth"
+    VIS_IRISFORMER_WEIGHTS: Path = _resolve_path_setting(
+        "VIS_IRISFORMER_WEIGHTS", IRIS_MODEL_DIR / "sota.pth"
     )
+    # Upstream model definitions: LightIrisNet `src/` (package `irisseg`) and
+    # the Vis-IrisFormer repository root (package `model`).
+    LIGHTIRISNET_SRC: Path = _resolve_path_setting(
+        "LIGHTIRISNET_SRC", IRIS_MODEL_DIR / "LightIrisNet" / "src"
+    )
+    VIS_IRISFORMER_SRC: Path = _resolve_path_setting(
+        "VIS_IRISFORMER_SRC", IRIS_MODEL_DIR / "Vis-IrisFormer"
+    )
+    # Torch device for iris inference ("cpu", "cuda"); empty = auto-detect.
+    IRIS_INFERENCE_DEVICE: str = os.getenv("IRIS_INFERENCE_DEVICE", "").strip()

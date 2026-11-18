@@ -54,3 +54,6 @@ Thumbs.db
 models/*.pth
 models/*.pt
 !models/.gitkeep
+# Upstream iris model source trees are obtained separately (docs/iris-models.md)
+models/LightIrisNet/
+models/Vis-IrisFormer/

@@ -95,8 +95,13 @@ def test_e2e_01_cold_startup_and_device_discovery(client):
 # ---------------------------------------------------------------------------
 # E2E-02: Camera Scans ONLY on Explicit Button Click
 # ---------------------------------------------------------------------------
-def test_e2e_02_camera_scans_only_on_button_click(client, registrar_token):
+def test_e2e_02_camera_scans_only_on_button_click(client, registrar_token, monkeypatch):
     """E2E-02: Camera and IR LED must remain IDLE and OFF until explicit scan request."""
+    from backend.devices import routes as device_routes
+    # Camera behaviour under test; iris template extraction (trained models) is stubbed
+    # so this test does not depend on model weights (covered by test_iris_engine.py).
+    monkeypatch.setattr(device_routes, "_extract_and_validate_iris_template",
+                        lambda image_bytes, eye_side: (True, {"status": "extracted", "model_version": "TEST-STUB"}))
     manager = DeviceManager()
     status_before = manager.camera.get_status()
     # In idle state before button click, camera must NOT be scanning

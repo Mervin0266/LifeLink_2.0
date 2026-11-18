@@ -3,12 +3,28 @@ LifeLink 2.0 - Biometric Identification and Verification Routes
 API endpoints for 1:N candidate identification search and 1:1 confirmation.
 """
 
+import logging
 from flask import Blueprint, request, jsonify, g
-from backend.biometrics.service import BiometricService
+from backend.biometrics.service import BiometricService, IrisEngineError
 from backend.auth.rbac import login_required, require_permission, Permissions
 from backend.audit.service import AuditService
 
 biometrics_bp = Blueprint("biometrics", __name__, url_prefix="/api/v1")
+logger = logging.getLogger("LifeLink.Biometrics")
+
+
+def _iris_engine_error_response(exc: IrisEngineError, action: str, target_type: str, target_id: str):
+    """Maps an iris engine failure to a client-safe error; the attempt is still audited."""
+    logger.error("[%s] %s: %s", action, exc.code, exc)
+    AuditService.log(
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details={"outcome": exc.code},
+        actor_id=g.current_user["staff_id"],
+        actor_role=g.current_user["role"]
+    )
+    return jsonify({"status": "error", **exc.public_dict()}), exc.http_status
 
 
 @biometrics_bp.route("/identify", methods=["POST"])
@@ -31,7 +47,10 @@ def identify_patient():
             "message": "Invalid request: biometric_type ('fingerprint' or 'iris') and probe_b64 are required."
         }), 400
 
-    result = BiometricService.identify_1_to_n(b_type, probe_b64)
+    try:
+        result = BiometricService.identify_1_to_n(b_type, probe_b64)
+    except IrisEngineError as exc:
+        return _iris_engine_error_response(exc, f"BIOMETRIC_IDENTIFY_{b_type.upper()}", "biometrics", "error")
 
     AuditService.log(
         action=f"BIOMETRIC_IDENTIFY_{b_type.upper()}",
@@ -75,7 +94,10 @@ def verify_patient():
     if b_type == "fingerprint":
         result = BiometricService.verify_fingerprint_1_to_1(patient_id, probe_b64)
     else:
-        result = BiometricService.verify_iris_1_to_1(patient_id, probe_b64, eye_side=position)
+        try:
+            result = BiometricService.verify_iris_1_to_1(patient_id, probe_b64, eye_side=position)
+        except IrisEngineError as exc:
+            return _iris_engine_error_response(exc, "BIOMETRIC_VERIFY_IRIS", "patient", patient_id)
 
     AuditService.log(
         action=f"BIOMETRIC_VERIFY_{b_type.upper()}",

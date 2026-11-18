@@ -46,7 +46,8 @@ def test_fingerprint_1_to_1_verify(client, clinician_token):
     assert "confidence" in data["verification"]
 
 
-def test_iris_1_to_1_verify(client, clinician_token):
+def test_iris_1_to_1_verify_rejects_non_image_probe(client, clinician_token):
+    """LL-001: a non-image iris probe is a client error, never scored by byte similarity."""
     headers = {"Authorization": f"Bearer {clinician_token}"}
     patient_id = "pat-synthetic-001"
     probe_b64 = base64.b64encode(b"synthetic_iris_embedding_probe").decode("utf-8")
@@ -57,13 +58,18 @@ def test_iris_1_to_1_verify(client, clinician_token):
         "probe_b64": probe_b64,
         "feature_position": "OD"
     }, headers=headers)
-    assert resp.status_code == 200
     data = resp.get_json()
-    assert data["status"] == "success"
-    assert "matched" in data["verification"]
+    if resp.status_code == 200:
+        # Only possible when the patient has no enrolled iris templates in this database.
+        assert data["verification"]["status"] == "NO_ENROLLED_TEMPLATES"
+    else:
+        assert resp.status_code == 400
+        assert data["status"] == "error"
+        assert data["error_type"] == "INVALID_IRIS_IMAGE"
 
 
-def test_1_to_n_identification(client, clinician_token):
+def test_1_to_n_iris_identification_rejects_non_image_probe(client, clinician_token):
+    """LL-001: 1:N iris search with a non-image probe returns 400, not a fabricated score."""
     headers = {"Authorization": f"Bearer {clinician_token}"}
     probe_b64 = base64.b64encode(b"synthetic_search_probe_vector").decode("utf-8")
 
@@ -71,7 +77,7 @@ def test_1_to_n_identification(client, clinician_token):
         "biometric_type": "iris",
         "probe_b64": probe_b64
     }, headers=headers)
-    assert resp.status_code == 200
+    assert resp.status_code == 400
     data = resp.get_json()
-    assert data["status"] == "success"
-    assert data["identification"]["outcome"] in ("MATCH", "NO_MATCH", "INCONCLUSIVE")
+    assert data["status"] == "error"
+    assert data["error_type"] == "INVALID_IRIS_IMAGE"
