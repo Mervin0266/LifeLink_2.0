@@ -78,8 +78,14 @@ process.
   name the affected model but never include filesystem paths; the detailed cause is
   logged server-side (`LifeLink.Biometrics`, `LifeLink.DevicesRoute`). Every failed
   `/identify` and `/verify` iris attempt is audited with its error type.
-* `GET /api/v1/devices/health` reports `iris_engine.state` = `not_loaded` | `ready` |
-  `unavailable` (with `error_type`) without triggering a model load.
+* `GET /api/v1/devices/health` reports `iris_engine` without triggering a model load:
+  `state` = `not_loaded` | `ready` | `unavailable` (with `error_type`, `components`),
+  `recognition_ready`, `segmentation_model` / `recognition_model` = `not_loaded` | `ok` |
+  `failed`, and `synthetic_fallback: false` (there is no degraded recognition mode).
+  Camera availability is separate (`health.camera_device`): a working camera does not mean
+  iris recognition can run. The kiosk header shows both ("Camera" and "Iris Engine" pills).
+* A new retrieval removes the previously displayed emergency summary from the page, and a
+  summary request that completes after a newer retrieval started is discarded.
 * The kiosk stops its automatic rescan loop on `MODEL_*`/`EMBEDDING_INVALID` errors and
   shows "Iris recognition unavailable" instead of "no match".
 * `MOCK_MODE` only replaces the camera; it does **not** enable any synthetic recognition.

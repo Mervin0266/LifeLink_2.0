@@ -712,3 +712,214 @@ def test_h_health_reports_iris_engine_state_without_paths(client, missing_models
     assert status["state"] == "unavailable"
     assert status["error_type"] == "MODEL_UNAVAILABLE"
     assert "/" not in json.dumps(status)
+
+
+# ---------------------------------------------------------------------------
+# I. LL-002B: reported false-identification regression and subsystem isolation
+# ---------------------------------------------------------------------------
+# The legacy oracle below re-implements, for evidence only, what commit 7837815 did when
+# the models were missing: fixed-centre circles as "segmentation" and an embedding drawn
+# from np.random seeded with sum(strip) % 10000. It is never used by production code.
+
+def _legacy_person(i):
+    """Synthetic eye i (as in the LL-002 investigation harness); not real biometric data."""
+    g = np.random.default_rng(1000 + i)
+    img = np.full((300, 400, 3), (232, 230, 235), np.uint8)
+    cv2.circle(img, (200, 150), 85, tuple(int(c) for c in g.integers(30, 200, 3)), -1)
+    for ang in range(0, 360, int(g.integers(3, 9))):
+        a = np.radians(ang + g.uniform(0, 3))
+        colour = tuple(int(c) for c in g.integers(30, 230, 3))
+        cv2.line(img, (int(200 + 32 * np.cos(a)), int(150 + 32 * np.sin(a))),
+                 (int(200 + 83 * np.cos(a)), int(150 + 83 * np.sin(a))), colour, 1)
+    cv2.circle(img, (200, 150), 28, (15, 15, 18), -1)
+    cv2.circle(img, (212, 138), 4, (255, 255, 255), -1)
+    return cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 95])[1].tobytes()
+
+
+def _legacy_embedding(jpeg):
+    bgr = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+    h, w = bgr.shape[:2]
+    cx, cy, iris_r = w // 2, h // 2, int(min(h, w) * 0.28)
+    pupil_r = int(iris_r * 0.35)
+    iris_mask, pupil_mask = np.zeros((h, w), np.uint8), np.zeros((h, w), np.uint8)
+    cv2.circle(iris_mask, (cx, cy), iris_r, 1, -1)
+    cv2.circle(pupil_mask, (cx, cy), pupil_r, 1, -1)
+    strip = IrisNormalizer(64, 512).normalize(
+        eye_image=bgr, iris_mask=iris_mask, pupil_mask=pupil_mask,
+        iris_ellipse=((float(cx), float(cy)), (2.0 * iris_r, 2.0 * iris_r), 0.0),
+        pupil_ellipse=((float(cx), float(cy)), (2.0 * pupil_r, 2.0 * pupil_r), 0.0))["normalized_iris"]
+    return np.random.RandomState(int(np.sum(strip) % 10000)).randn(128, 768).astype(np.float32)
+
+
+@pytest.fixture(scope="module")
+def legacy_collision_pair():
+    """Two different synthetic eyes that the legacy fallback mapped to the same embedding."""
+    seen = {}
+    for i in range(1500):
+        jpeg = _legacy_person(i)
+        emb = _legacy_embedding(jpeg)
+        key = hashlib.sha256(emb.tobytes()).hexdigest()
+        if key in seen and seen[key][0] != jpeg:
+            return {"a": seen[key][0], "b": jpeg, "a_index": seen[key][1], "b_index": i}
+        seen[key] = (jpeg, i)
+    pytest.fail("no legacy seed collision found in 1500 synthetic eyes")
+
+
+def test_i_legacy_fallback_false_accept_is_reproduced(legacy_collision_pair):
+    """Evidence for LL-002B: two different eyes produced identical 'embeddings' and scored 1.0."""
+    a, b = legacy_collision_pair["a"], legacy_collision_pair["b"]
+    assert a != b
+    assert IrisRecognizer.compare(_legacy_embedding(a), _legacy_embedding(b)) == 1.0
+
+
+def test_i_legacy_fallback_false_reject_is_reproduced():
+    """Evidence for LL-002B: the same eye with +1 brightness scored about zero."""
+    original = _legacy_person(7)
+    bgr = cv2.imdecode(np.frombuffer(original, np.uint8), cv2.IMREAD_COLOR)
+    brighter = cv2.imencode(".jpg", cv2.add(bgr, np.full_like(bgr, 1)), [cv2.IMWRITE_JPEG_QUALITY, 95])[1].tobytes()
+    assert abs(IrisRecognizer.compare(_legacy_embedding(original), _legacy_embedding(brighter))) < 0.1
+
+
+@pytest.fixture
+def enrolled_collision_patient(legacy_collision_pair):
+    """Patient enrolled with collision image A (encrypted at rest, as registration stores it)."""
+    from backend.database.connection import Database
+    from backend.database.crypto import TemplateCrypto
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    pid = f"ll002-collision-{uuid.uuid4().hex[:8]}"
+    Database.execute_commit(
+        "INSERT INTO patients_cache (id, lifelink_id, full_name, dob, gender, blood_type, status, version, created_at, updated_at) "
+        "VALUES (?, ?, 'LL002 Collision Person A', '1970-01-01', 'O', 'AB+', 'active', 1, ?, ?);",
+        (pid, f"LL-T-{pid[-8:]}", now, now))
+    Database.execute_commit(
+        "INSERT INTO medical_records (id, patient_id, allergies, chronic_conditions, current_medications, implanted_devices, updated_at) "
+        "VALUES (?, ?, '[\"Morphine\"]', '[]', '[]', '[]', ?);", (str(uuid.uuid4()), pid, now))
+    Database.execute_commit(
+        "INSERT INTO iris_templates (id, patient_id, eye_side, encrypted_template, model_version, quality_score, created_at) "
+        "VALUES (?, ?, 'OD', ?, 'collision-regression', 1.0, ?);",
+        (str(uuid.uuid4()), pid, TemplateCrypto().encrypt(legacy_collision_pair["a"]), now))
+    yield pid
+    for table_name in ("iris_templates", "medical_records", "patients_cache"):
+        column = "id" if table_name == "patients_cache" else "patient_id"
+        Database.execute_commit(f"DELETE FROM {table_name} WHERE {column} = ?;", (pid,))
+
+
+def _assert_no_identity_disclosed(body, pid):
+    text = json.dumps(body)
+    assert "identification" not in body and "candidates" not in body and "verification" not in body
+    assert pid not in text and "Collision Person" not in text and "Morphine" not in text
+
+
+def test_i_collision_pair_cannot_match_without_models(client, clinician_headers, missing_models,
+                                                      legacy_collision_pair, enrolled_collision_patient):
+    """Reported scenario, current code: enrolled A, probe B, no models -> 503, not MATCH / NO_MATCH."""
+    probe = _b64(legacy_collision_pair["b"])
+    ident = client.post("/api/v1/identify", headers=clinician_headers,
+                        json={"biometric_type": "iris", "probe_b64": probe})
+    assert ident.status_code == 503 and ident.get_json()["error_type"] == "MODEL_UNAVAILABLE"
+    _assert_no_identity_disclosed(ident.get_json(), enrolled_collision_patient)
+    verify = client.post("/api/v1/verify", headers=clinician_headers, json={
+        "patient_id": enrolled_collision_patient, "biometric_type": "iris", "probe_b64": probe, "feature_position": "OD"})
+    assert verify.status_code == 503 and verify.get_json()["error_type"] == "MODEL_UNAVAILABLE"
+    _assert_no_identity_disclosed(verify.get_json(), enrolled_collision_patient)
+
+
+@requires_models
+def test_i_collision_pair_with_real_models_is_not_a_match(client, clinician_headers,
+                                                         legacy_collision_pair, enrolled_collision_patient):
+    """With the trained models the synthetic eyes are rejected at segmentation; never a MATCH."""
+    from backend.biometrics.service import BiometricService
+    BiometricService._reset_iris_pipeline()
+    resp = client.post("/api/v1/identify", headers=clinician_headers,
+                       json={"biometric_type": "iris", "probe_b64": _b64(legacy_collision_pair["b"])})
+    body = resp.get_json()
+    if resp.status_code == 200:
+        assert all(c["patient_id"] != enrolled_collision_patient for c in body["identification"]["candidates"])
+    else:
+        assert resp.status_code == 422 and body["error_type"] == "SEGMENTATION_FAILED"
+        _assert_no_identity_disclosed(body, enrolled_collision_patient)
+
+
+def test_i_health_distinguishes_camera_from_recognition_models(client, missing_models):
+    from backend.biometrics.service import BiometricService
+    before = client.get("/api/v1/devices/health").get_json()
+    assert before["iris_engine"]["state"] == "not_loaded"
+    assert before["iris_engine"]["recognition_ready"] is False
+    with pytest.raises(IrisModelUnavailableError):
+        BiometricService._get_iris_pipeline()
+    health = client.get("/api/v1/devices/health").get_json()
+    engine = health["iris_engine"]
+    assert health["health"]["camera_device"]["connected"] is True   # mock camera works ...
+    assert engine["state"] == "unavailable" and engine["recognition_ready"] is False  # ... recognition does not
+    assert engine["segmentation_model"] == "failed" and engine["recognition_model"] == "failed"
+    assert engine["synthetic_fallback"] is False
+    assert "/" not in json.dumps(engine)
+
+
+def test_i_health_reports_which_model_failed(client, tmp_path, monkeypatch):
+    from backend.biometrics.service import BiometricService
+    monkeypatch.setattr(Config, "LIGHTIRISNET_WEIGHTS", tmp_path / "missing_best_mobilenetv3.pt")
+    BiometricService._reset_iris_pipeline()
+    try:
+        with pytest.raises(IrisModelUnavailableError):
+            BiometricService._get_iris_pipeline()
+        engine = client.get("/api/v1/devices/health").get_json()["iris_engine"]
+        assert engine["segmentation_model"] == "failed"
+        assert engine["recognition_model"] == ("ok" if HAS_WEIGHTS and HAS_SOURCES and HAS_TORCH else "failed")
+    finally:
+        BiometricService._reset_iris_pipeline()
+
+
+def test_i_iris_unavailable_does_not_affect_fingerprint_identification(client, clinician_headers, missing_models):
+    from backend.biometrics.service import BiometricService
+    from backend.database.connection import Database
+    from backend.database.crypto import TemplateCrypto
+    with pytest.raises(IrisModelUnavailableError):
+        BiometricService._get_iris_pipeline()
+    row = Database.execute_one("SELECT patient_id, encrypted_template FROM fingerprint_templates LIMIT 1;")
+    if row is None:
+        pytest.skip("BLOCKED: no enrolled fingerprint in this database (run scripts/seed_demo.py)")
+    probe = _b64(TemplateCrypto().decrypt(row["encrypted_template"]))
+    resp = client.post("/api/v1/identify", headers=clinician_headers,
+                       json={"biometric_type": "fingerprint", "probe_b64": probe})
+    assert resp.status_code == 200
+    ident = resp.get_json()["identification"]
+    assert ident["outcome"] in ("MATCH", "INCONCLUSIVE")
+    assert any(c["patient_id"] == row["patient_id"] and c["match_type"] == "fingerprint" for c in ident["candidates"])
+
+
+def test_i_fingerprint_unavailable_does_not_masquerade_as_iris_state(client, clinician_headers, missing_models):
+    from backend.devices.manager import DeviceManager
+    fp = DeviceManager().fingerprint
+    if not hasattr(fp, "set_failure_mode"):
+        pytest.skip("hardware fingerprint driver active")
+    fp.set_failure_mode("disconnect")
+    try:
+        capture = client.post("/api/v1/devices/fingerprint/capture-probe", headers=clinician_headers, json={})
+        assert capture.status_code == 503 and capture.get_json()["error_type"] == "HARDWARE_DISCONNECTED"
+        iris = client.post("/api/v1/identify", headers=clinician_headers,
+                           json={"biometric_type": "iris", "probe_b64": _b64(_png(_pattern(5)))})
+        assert iris.status_code == 503 and iris.get_json()["error_type"] == "MODEL_UNAVAILABLE"
+    finally:
+        fp.set_failure_mode(None)
+
+
+def test_i_one_modality_cannot_be_matched_as_the_other(client, clinician_headers, stub_gallery):
+    """A fingerprint template is not an iris image, and an iris image is not a fingerprint template."""
+    from backend.database.connection import Database
+    from backend.database.crypto import TemplateCrypto
+    row = Database.execute_one("SELECT encrypted_template FROM fingerprint_templates LIMIT 1;")
+    if row is not None:
+        fp_probe = _b64(TemplateCrypto().decrypt(row["encrypted_template"]))
+        as_iris = client.post("/api/v1/identify", headers=clinician_headers,
+                              json={"biometric_type": "iris", "probe_b64": fp_probe})
+        assert as_iris.status_code == 400 and as_iris.get_json()["error_type"] == "INVALID_IRIS_IMAGE"
+    iris_probe = _b64(_png(stub_gallery["images"]["A"]))
+    as_fp = client.post("/api/v1/identify", headers=clinician_headers,
+                        json={"biometric_type": "fingerprint", "probe_b64": iris_probe})
+    if as_fp.status_code == 200:
+        candidates = as_fp.get_json()["identification"]["candidates"]
+        assert all(c["match_type"] == "fingerprint" for c in candidates)
+        assert all(c["patient_id"] not in stub_gallery["patients"].values() for c in candidates)
+    else:
+        assert as_fp.status_code == 400

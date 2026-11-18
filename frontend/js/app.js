@@ -252,6 +252,7 @@ class LifeLinkApp {
       const fpPill = document.getElementById('status-fp');
       const camPill = document.getElementById('status-cam');
       const dbPill = document.getElementById('status-db');
+      const irisPill = document.getElementById('status-iris-engine');
 
       if (fpPill) {
         fpPill.className = `status-dot ${h.fingerprint_device.connected ? (h.mock_mode ? 'mock' : 'active') : 'error'}`;
@@ -261,6 +262,15 @@ class LifeLinkApp {
       }
       if (dbPill) {
         dbPill.className = `status-dot ${h.local_database.healthy ? 'active' : 'error'}`;
+      }
+      // Recognition availability is separate from camera availability: a working camera
+      // does not mean iris identification can run.
+      if (irisPill && res.iris_engine) {
+        const state = res.iris_engine.state;
+        irisPill.className = `status-dot ${state === 'ready' ? 'active' : state === 'unavailable' ? 'error' : 'mock'}`;
+        irisPill.parentElement.title = state === 'unavailable'
+          ? `Iris recognition unavailable (${res.iris_engine.error_type})`
+          : state === 'ready' ? 'Iris recognition models loaded' : 'Iris recognition models not loaded yet';
       }
     } catch (e) {
       console.warn('Health poll failed:', e);
@@ -1039,7 +1049,10 @@ class LifeLinkApp {
   /* --- Workflow B: Retrieval --- */
   async startRetrieval() {
     document.getElementById('retrieval-status-box').style.display = 'none';
-    document.getElementById('retrieval-results-card').style.display = 'none';
+    this.retrievalSeq = (this.retrievalSeq || 0) + 1;
+    const staleCard = document.getElementById('retrieval-results-card');
+    staleCard.style.display = 'none';
+    staleCard.innerHTML = '';
     const irisPanel = document.getElementById('retrieval-iris-panel');
     if (irisPanel) irisPanel.style.display = 'none';
     await this.stopRetrievalIrisPreview();
@@ -1143,7 +1156,13 @@ class LifeLinkApp {
 
     if (!statusBox) return;
     statusBox.style.display = 'block';
-    if (resultsCard) resultsCard.style.display = 'none';
+    // A new retrieval invalidates everything shown for the previous one: remove (not just hide)
+    // the last patient's summary, and let any still-pending summary request be discarded.
+    this.retrievalSeq = (this.retrievalSeq || 0) + 1;
+    if (resultsCard) {
+      resultsCard.style.display = 'none';
+      resultsCard.innerHTML = '';
+    }
 
     // Disable capture buttons while scanning to prevent hardware race conditions
     if (btnFp) btnFp.disabled = true;
@@ -1458,8 +1477,10 @@ class LifeLinkApp {
   }
 
   async loadPatientEmergencyRecord(patientId) {
+    const seq = this.retrievalSeq;
     try {
       const res = await window.api.getEmergencySummary(patientId);
+      if (seq !== this.retrievalSeq) return;  // a newer retrieval started meanwhile: never show this patient
       const s = res.emergency_summary;
       const card = document.getElementById('retrieval-results-card');
       if (!card) return;

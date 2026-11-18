@@ -278,12 +278,28 @@ class BiometricService:
 
     @classmethod
     def iris_engine_status(cls) -> Dict[str, Any]:
-        """Non-loading status snapshot for health reporting (no filesystem paths)."""
+        """
+        Non-loading status snapshot for health reporting (no filesystem paths).
+        state: 'not_loaded' (no iris request yet) | 'ready' | 'unavailable' (+ error_type).
+        segmentation_model / recognition_model: 'not_loaded' | 'ok' | 'failed'.
+        synthetic_fallback is always False: there is no degraded recognition mode.
+        Camera availability is reported separately (health.camera_device).
+        """
+        status: Dict[str, Any] = {"synthetic_fallback": False}
         if cls._iris_pipeline is not None:
-            return {"state": "ready", "model_version": cls._iris_pipeline.model_version}
-        if cls._iris_pipeline_error is not None:
-            return {"state": "unavailable", **cls._iris_pipeline_error.public_dict()}
-        return {"state": "not_loaded"}
+            status.update(state="ready", recognition_ready=True, segmentation_model="ok", recognition_model="ok",
+                          model_version=cls._iris_pipeline.model_version)
+        elif cls._iris_pipeline_error is not None:
+            failed = set(cls._iris_pipeline_error.components)
+            engine_missing = "iris-engine" in failed
+            status.update(state="unavailable", recognition_ready=False,
+                          segmentation_model="failed" if engine_missing or "LightIrisNet" in failed else "ok",
+                          recognition_model="failed" if engine_missing or "Vis-IrisFormer" in failed else "ok",
+                          **cls._iris_pipeline_error.public_dict())
+        else:
+            status.update(state="not_loaded", recognition_ready=False,
+                          segmentation_model="not_loaded", recognition_model="not_loaded")
+        return status
 
     @classmethod
     def iris_model_version(cls) -> str:
